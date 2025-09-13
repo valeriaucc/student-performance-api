@@ -1,5 +1,9 @@
 package com.viveek.aiclass.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,12 +18,18 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/test")
+@Tag(name = "System Tests", description = "API para pruebas del sistema y conectividad")
 public class DatabaseTestController {
 
     @Autowired
     private DataSource dataSource;
 
     @GetMapping("/db-connection")
+    @Operation(summary = "Probar conexión a base de datos", description = "Verifica la conectividad y estado de la conexión a la base de datos")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Conexión exitosa"),
+            @ApiResponse(responseCode = "500", description = "Error de conexión")
+    })
     public ResponseEntity<Map<String, Object>> testDatabaseConnection() {
         Map<String, Object> response = new HashMap<>();
         

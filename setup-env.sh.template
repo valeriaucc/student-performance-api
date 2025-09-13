@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# AIClass API - Environment Variables Setup Template
+# This script sets up environment variables for the Spring Boot application
+# Copy this file to setup-env.sh and replace the placeholder values with your actual credentials
+
+echo "🔧 Setting up environment variables for AIClass API..."
+
+# Database Configuration - Supabase PostgreSQL
+# Replace these values with your actual Supabase credentials
+export DB_URL="jdbc:postgresql://your-pooler-host:5432/postgres"
+export DB_USERNAME="postgres.your-project-ref"
+export DB_PASSWORD="your-database-password"
+export DB_DRIVER="org.postgresql.Driver"
+
+# Hibernate Configuration
+export HIBERNATE_DDL_AUTO="update"
+export HIBERNATE_SHOW_SQL="true"
+export HIBERNATE_FORMAT_SQL="true"
+export HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQLDialect"
+
+# Server Configuration
+export SERVER_PORT="8080"
+
+# Application Configuration
+export APP_NAME="aiclass"
+
+echo "✅ Environment variables set successfully!"
+echo "🚀 You can now run: ./mvnw spring-boot:run"
+echo ""
+echo "📋 Variables set:"
+echo "  - DB_URL: $DB_URL"
+echo "  - DB_USERNAME: $DB_USERNAME"
+echo "  - DB_PASSWORD: [HIDDEN]"
+echo "  - SERVER_PORT: $SERVER_PORT"
+
+# Instructions:
+# 1. Copy this file: cp setup-env.sh.template setup-env.sh
+# 2. Edit setup-env.sh with your actual Supabase credentials
+# 3. Never commit the setup-env.sh file to version control
+# 4. Run: source setup-env.sh && ./mvnw spring-boot:run
