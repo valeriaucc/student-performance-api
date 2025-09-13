@@ -32,4 +32,9 @@ public class Nota {
 
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
+
+    @PrePersist
+    protected void onCreate() {
+        fechaRegistro = LocalDateTime.now();
+    }
 }

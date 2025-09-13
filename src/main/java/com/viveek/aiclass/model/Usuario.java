@@ -37,4 +37,9 @@ public class Usuario {
     @OneToMany(mappedBy = "usuario")
     @JsonIgnore
     private List<RecomendacionIA> recomendaciones;
+
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+    }
 }

@@ -1,0 +1,601 @@
+{
+	"info": {
+		"_postman_id": "student-performance-api-collection",
+		"name": "Student Performance API",
+		"description": "Colección completa de endpoints para el sistema de gestión de rendimiento estudiantil con IA",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "student-performance-api"
+	},
+	"item": [
+		{
+			"name": "👥 User Management",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios"
+							]
+						},
+						"description": "Obtiene todos los usuarios registrados en el sistema (profesores y estudiantes)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"{{user_id}}"
+							]
+						},
+						"description": "Obtiene un usuario específico por su ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Juan Pérez\",\n  \"email\": \"juan.perez@univ.edu\",\n  \"rol\": \"estudiante\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios"
+							]
+						},
+						"description": "Crea un nuevo usuario en el sistema"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Juan Carlos Pérez\",\n  \"email\": \"juan.perez@univ.edu\",\n  \"rol\": \"estudiante\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"{{user_id}}"
+							]
+						},
+						"description": "Actualiza los datos de un usuario existente"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/usuarios/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"usuarios",
+								"{{user_id}}"
+							]
+						},
+						"description": "Elimina un usuario del sistema"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de usuarios (profesores y estudiantes)"
+		},
+		{
+			"name": "📚 Subject Management",
+			"item": [
+				{
+					"name": "Get All Subjects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/materias",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"materias"
+							]
+						},
+						"description": "Obtiene todas las materias académicas registradas en el sistema"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Subject",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Física Avanzada\",\n  \"codigo\": \"FIS201\",\n  \"descripcion\": \"Curso avanzado de física cuántica y relatividad\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/materias",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"materias"
+							]
+						},
+						"description": "Crea una nueva materia académica en el sistema"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de materias académicas"
+		},
+		{
+			"name": "🏫 Class Management",
+			"item": [
+				{
+					"name": "Get All Classes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clases",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clases"
+							]
+						},
+						"description": "Obtiene todas las clases académicas registradas en el sistema"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Classes by Professor",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/clases/profesor/{{professor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clases",
+								"profesor",
+								"{{professor_id}}"
+							]
+						},
+						"description": "Obtiene todas las clases asignadas a un profesor específico"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Class",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"materia\": {\n    \"id\": 1\n  },\n  \"profesor\": {\n    \"id\": 1\n  },\n  \"grupo\": \"A\",\n  \"anio\": 2024,\n  \"semestre\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clases",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clases"
+							]
+						},
+						"description": "Crea una nueva clase académica en el sistema"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de clases académicas"
+		},
+		{
+			"name": "📊 Grade Management",
+			"item": [
+				{
+					"name": "Get Grades by Class",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/notas/clase/{{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"notas",
+								"clase",
+								"{{class_id}}"
+							]
+						},
+						"description": "Obtiene todas las notas registradas para una clase específica"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Grades by Student",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/notas/estudiante/{{student_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"notas",
+								"estudiante",
+								"{{student_id}}"
+							]
+						},
+						"description": "Obtiene todas las notas registradas para un estudiante específico"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Grade",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"estudiante\": {\n    \"id\": 2\n  },\n  \"clase\": {\n    \"id\": 1\n  },\n  \"tipo\": \"examen_parcial\",\n  \"valor\": 85.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/notas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"notas"
+							]
+						},
+						"description": "Registra una nueva calificación para un estudiante en una clase"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Grade",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"estudiante\": {\n    \"id\": 2\n  },\n  \"clase\": {\n    \"id\": 1\n  },\n  \"tipo\": \"examen_parcial\",\n  \"valor\": 88.0\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/notas/{{grade_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"notas",
+								"{{grade_id}}"
+							]
+						},
+						"description": "Actualiza una calificación existente"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de calificaciones y notas"
+		},
+		{
+			"name": "🤖 AI Recommendations",
+			"item": [
+				{
+					"name": "Get Recommendations by User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/recomendaciones/usuario/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recomendaciones",
+								"usuario",
+								"{{user_id}}"
+							]
+						},
+						"description": "Obtiene todas las recomendaciones generadas para un usuario específico"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations by Class",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/recomendaciones/clase/{{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recomendaciones",
+								"clase",
+								"{{class_id}}"
+							]
+						},
+						"description": "Obtiene todas las recomendaciones generadas para una clase específica"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations by Type",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/recomendaciones/tipo/{{recommendation_type}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recomendaciones",
+								"tipo",
+								"{{recommendation_type}}"
+							]
+						},
+						"description": "Obtiene todas las recomendaciones filtradas por tipo (estudiante, profesor, etc.)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de recomendaciones generadas por IA"
+		},
+		{
+			"name": "🔧 System Tests",
+			"item": [
+				{
+					"name": "Test Database Connection",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test/db-connection",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test",
+								"db-connection"
+							]
+						},
+						"description": "Verifica la conectividad y estado de la conexión a la base de datos"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para pruebas del sistema y conectividad"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "professor_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "student_id",
+			"value": "2",
+			"type": "string"
+		},
+		{
+			"key": "class_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "grade_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "recommendation_type",
+			"value": "estudiante",
+			"type": "string"
+		}
+	]
+}

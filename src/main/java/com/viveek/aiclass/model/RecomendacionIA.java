@@ -30,4 +30,9 @@ public class RecomendacionIA {
 
     @Column(name = "fecha_generacion")
     private LocalDateTime fechaGeneracion;
+
+    @PrePersist
+    protected void onCreate() {
+        fechaGeneracion = LocalDateTime.now();
+    }
 }
