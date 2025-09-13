@@ -1,6 +1,7 @@
 package com.viveek.aiclass.model;
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,11 +31,14 @@ public class Clase {
     private Integer semestre;
 
     @OneToMany(mappedBy = "clase")
+    @JsonIgnore
     private List<EstudianteClase> estudiantes;
 
     @OneToMany(mappedBy = "clase")
+    @JsonIgnore
     private List<Nota> notas;
 
     @OneToMany(mappedBy = "clase")
+    @JsonIgnore
     private List<RecomendacionIA> recomendaciones;
 }

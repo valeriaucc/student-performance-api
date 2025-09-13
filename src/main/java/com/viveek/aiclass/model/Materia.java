@@ -1,6 +1,7 @@
 package com.viveek.aiclass.model;
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,5 +27,6 @@ public class Materia {
     private String descripcion;
 
     @OneToMany(mappedBy = "materia")
+    @JsonIgnore
     private List<Clase> clases;
 }
