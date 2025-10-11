@@ -1,10 +1,25 @@
-# AIClass Assistant API
+# AIClass API - Student Performance Management System
 
-A Spring Boot REST API designed for student performance analysis and AI-powered educational assistance.
+A modern, enterprise-grade REST API for academic management and student performance analytics, built with Spring Boot 3.5 and PostgreSQL/Supabase.
 
 ## 🚀 Project Overview
 
-AIClass Assistant is a backend API designed to manage educational data, student performance metrics, and provide intelligent recommendations based on AI. The application handles users (professors and students), subjects, classes, grades, and personalized recommendations.
+AIClass API is a comprehensive backend system for managing educational data, tracking student performance, and providing AI-powered recommendations. The application follows clean architecture principles and modern best practices for maintainable, scalable code.
+
+## ✨ Key Features
+
+- **User Management** - Teachers and students with Supabase Auth integration
+- **Subject Management** - Academic subjects/courses with code-based lookup
+- **Class Management** - Class sections with teacher assignments and scheduling
+- **Enrollment System** - Student enrollment with status tracking (active, dropped, completed)
+- **Grade Management** - Student grades with automatic percentage calculation
+- **AI Recommendations** - AI-generated recommendations for teachers and students
+- **Clean Architecture** - Proper separation of concerns (Controller → Service → Repository)
+- **UUID Primary Keys** - Modern, globally unique identifiers
+- **JSONB Metadata** - Flexible metadata storage for extensibility
+- **Comprehensive API Documentation** - Interactive Swagger/OpenAPI docs
+- **Global Exception Handling** - Consistent error responses
+- **Input Validation** - Bean Validation with detailed error messages
 
 ## 🛠️ Technology Stack
 
@@ -14,6 +29,9 @@ AIClass Assistant is a backend API designed to manage educational data, student 
 - **Spring Web** - REST API endpoints
 - **PostgreSQL** - Primary database (Supabase)
 - **Lombok** - Code generation for boilerplate reduction
+- **MapStruct** - DTO mapping
+- **Hypersistence Utils** - JSONB support
+- **SpringDoc OpenAPI** - API documentation
 - **Maven** - Build and dependency management
 - **Spring Boot DevTools** - Development productivity
 
@@ -22,35 +40,49 @@ AIClass Assistant is a backend API designed to manage educational data, student 
 ### Core Entities
 
 #### 👤 User
-- **Table:** `usuarios`
-- **Fields:** id, nombre, email, rol, fecha_creacion
-- **Roles:** profesor, estudiante
-- **Relationships:** OneToMany with Clase (as professor), OneToMany with RecomendacionIA
+- **Table:** `users`
+- **Primary Key:** UUID
+- **Key Fields:** auth_user_id, full_name, email, role, metadata (JSONB)
+- **Roles:** TEACHER, STUDENT
+- **Relationships:** OneToMany with Class (as teacher), OneToMany with Enrollment, OneToMany with Grade, OneToMany with AiRecommendation
+- **Features:** Supabase Auth integration, flexible metadata storage
 
-#### 📚 Subject (Materia)
-- **Table:** `materias`
-- **Fields:** id, nombre, codigo, descripcion
-- **Relationships:** OneToMany with Clase
+#### 📚 Subject
+- **Table:** `subjects`
+- **Primary Key:** UUID
+- **Key Fields:** code (unique), name, description, credits, metadata (JSONB)
+- **Relationships:** OneToMany with Class
+- **Features:** Unique subject codes for easy lookup
 
-#### 🏫 Class (Clase)
-- **Table:** `clases`
-- **Fields:** id, grupo, anio, semestre
-- **Relationships:** ManyToOne with Materia, ManyToOne with Usuario (professor), OneToMany with EstudianteClase, OneToMany with Nota, OneToMany with RecomendacionIA
+#### 🏫 Class
+- **Table:** `classes`
+- **Primary Key:** UUID
+- **Key Fields:** group, year, semester, schedule, metadata (JSONB)
+- **Relationships:** ManyToOne with Subject, ManyToOne with User (teacher), OneToMany with Enrollment, OneToMany with Grade, OneToMany with AiRecommendation
+- **Features:** Scheduling support, semester-based organization
 
-#### 👨‍🎓 StudentClass (EstudianteClase)
-- **Table:** `estudiantes_clase`
-- **Purpose:** Junction table between students and classes
-- **Relationships:** ManyToOne with Clase, ManyToOne with Usuario (student)
+#### 👨‍🎓 Enrollment
+- **Table:** `enrollments`
+- **Primary Key:** UUID
+- **Key Fields:** enrollment_status, enrolled_at
+- **Status:** ACTIVE, DROPPED, COMPLETED
+- **Relationships:** ManyToOne with Class, ManyToOne with User (student)
+- **Features:** Enrollment date tracking, status management
 
-#### 📝 Grade (Nota)
-- **Table:** `notas`
-- **Fields:** id, tipo, valor, fecha_registro
-- **Relationships:** ManyToOne with Usuario (student), ManyToOne with Clase
+#### 📝 Grade
+- **Table:** `grades`
+- **Primary Key:** UUID
+- **Key Fields:** assessment_kind, assessment_name, score, max_score, percentage, graded_at
+- **Relationships:** ManyToOne with User (student), ManyToOne with Class
+- **Features:** Automatic percentage calculation, flexible assessment types
 
-#### 🤖 AI Recommendation (RecomendacionIA)
-- **Table:** `recomendaciones_ia`
-- **Fields:** id, mensaje, tipo, fecha_generacion
-- **Relationships:** ManyToOne with Usuario, ManyToOne with Clase
+#### 🤖 AI Recommendation
+- **Table:** `ai_recommendations`
+- **Primary Key:** UUID
+- **Key Fields:** message, audience, generated_at
+- **Audience:** STUDENT, TEACHER
+- **Relationships:** ManyToOne with User (recipient), ManyToOne with Class
+- **Features:** Targeted recommendations, timestamp tracking
 
 ## 🔗 API Endpoints
 
@@ -59,396 +91,779 @@ AIClass Assistant is a backend API designed to manage educational data, student 
 http://localhost:8080/api
 ```
 
-### 👤 User Management (`/api/usuarios`)
+All responses follow the `ApiResponse<T>` wrapper pattern for consistency:
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/usuarios` | Get all users | - |
-| `GET` | `/usuarios/{id}` | Get user by ID | `id` (Long) |
-| `POST` | `/usuarios` | Create new user | Body: Usuario |
-| `PUT` | `/usuarios/{id}` | Update user | `id` (Long), Body: Usuario |
-| `DELETE` | `/usuarios/{id}` | Delete user | `id` (Long) |
+### 👤 User Management (`/api/users`)
 
-**User Example:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/users` | Get all users (filter by role) |
+| `GET` | `/api/users/{id}` | Get user by ID (UUID) |
+| `GET` | `/api/users/auth/{authUserId}` | Get user by Supabase auth ID |
+| `GET` | `/api/users/email/{email}` | Get user by email |
+| `POST` | `/api/users` | Create new user |
+| `PUT` | `/api/users/{id}` | Update user |
+| `DELETE` | `/api/users/{id}` | Delete user |
+
+**Create User Request:**
 ```json
 {
-  "id": 1,
-  "nombre": "Ana Ruiz",
-  "email": "ana@univ.edu",
-  "rol": "profesor",
-  "fechaCreacion": "2025-01-13T10:30:00"
+  "authUserId": "550e8400-e29b-41d4-a716-446655440000",
+  "fullName": "Dr. Ana Ruiz",
+  "email": "ana.ruiz@university.edu",
+  "role": "TEACHER",
+  "metadata": {
+    "department": "Mathematics",
+    "office": "Building A, Room 305"
+  }
 }
 ```
 
-### 🏫 Class Management (`/api/clases`)
-
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/clases` | Get all classes | - |
-| `GET` | `/clases/profesor/{profesorId}` | Get classes by professor | `profesorId` (Long) |
-| `POST` | `/clases` | Create new class | Body: Clase |
-
-**Class Example:**
+**Response:**
 ```json
 {
-  "id": 1,
-  "materia": {
-    "id": 1,
-    "nombre": "Matemáticas I",
-    "codigo": "MAT101"
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "authUserId": "550e8400-e29b-41d4-a716-446655440000",
+    "fullName": "Dr. Ana Ruiz",
+    "email": "ana.ruiz@university.edu",
+    "role": "TEACHER",
+    "metadata": {
+      "department": "Mathematics",
+      "office": "Building A, Room 305"
+    },
+    "createdAt": "2025-10-11T10:00:00Z",
+    "updatedAt": "2025-10-11T10:00:00Z"
   },
-  "profesor": {
-    "id": 1,
-    "nombre": "Ana Ruiz"
-  },
-  "grupo": "A",
-  "anio": 2025,
-  "semestre": 2
+  "timestamp": "2025-10-11T10:00:00Z"
 }
 ```
 
-### 📚 Subject Management (`/api/materias`)
+### 📚 Subject Management (`/api/subjects`)
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/materias` | Get all subjects | - |
-| `POST` | `/materias` | Create new subject | Body: Materia |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/subjects` | Get all subjects |
+| `GET` | `/api/subjects/{id}` | Get subject by ID (UUID) |
+| `GET` | `/api/subjects/code/{code}` | Get subject by code |
+| `POST` | `/api/subjects` | Create new subject |
+| `PUT` | `/api/subjects/{id}` | Update subject |
+| `DELETE` | `/api/subjects/{id}` | Delete subject |
 
 **Subject Example:**
 ```json
 {
-  "id": 1,
-  "nombre": "Matemáticas I",
-  "codigo": "MAT101",
-  "descripcion": "Introducción al álgebra"
+  "code": "MAT101",
+  "name": "Calculus I",
+  "description": "Introduction to differential calculus",
+  "credits": 4,
+  "metadata": {
+    "prerequisites": ["ALG101"],
+    "level": "undergraduate"
+  }
 }
 ```
 
-### 📝 Grade Management (`/api/notas`)
+### 🏫 Class Management (`/api/classes`)
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/notas/clase/{claseId}` | Get grades by class | `claseId` (Long) |
-| `GET` | `/notas/estudiante/{estudianteId}` | Get grades by student | `estudianteId` (Long) |
-| `POST` | `/notas` | Create new grade | Body: Nota |
-| `PUT` | `/notas/{id}` | Update grade | `id` (Long), Body: Nota |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/classes` | Get all classes (filter by teacher, subject, year, semester) |
+| `GET` | `/api/classes/{id}` | Get class by ID (UUID) |
+| `POST` | `/api/classes` | Create new class |
+| `PUT` | `/api/classes/{id}` | Update class |
+| `DELETE` | `/api/classes/{id}` | Delete class |
 
-**Grade Example:**
+**Class Example:**
 ```json
 {
-  "id": 1,
-  "estudiante": {
-    "id": 2,
-    "nombre": "Carlos Gómez"
-  },
-  "clase": {
-    "id": 1,
-    "grupo": "A"
-  },
-  "tipo": "Parcial 1",
-  "valor": 2.8,
-  "fechaRegistro": "2025-01-13T10:30:00"
+  "subjectId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "teacherId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "group": "A",
+  "year": 2025,
+  "semester": "FIRST",
+  "schedule": "Mon/Wed/Fri 10:00-11:30",
+  "metadata": {
+    "room": "Building C, Room 201",
+    "capacity": 30
+  }
 }
 ```
 
-### 🤖 AI Recommendations (`/api/recomendaciones`)
+### 👨‍🎓 Enrollment Management (`/api/enrollments`)
 
-| Method | Endpoint | Description | Parameters |
-|--------|----------|-------------|------------|
-| `GET` | `/recomendaciones/usuario/{usuarioId}` | Get recommendations by user | `usuarioId` (Long) |
-| `GET` | `/recomendaciones/clase/{claseId}` | Get recommendations by class | `claseId` (Long) |
-| `GET` | `/recomendaciones/tipo/{tipo}` | Get recommendations by type | `tipo` (String) |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/enrollments` | Get enrollments (filter by class, student, status) |
+| `GET` | `/api/enrollments/{id}` | Get enrollment by ID (UUID) |
+| `POST` | `/api/enrollments` | Enroll student in class |
+| `PATCH` | `/api/enrollments/{id}` | Update enrollment status |
+| `DELETE` | `/api/enrollments/{id}` | Delete enrollment |
+
+**Enrollment Example:**
+```json
+{
+  "classId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "studentId": "f6e5d4c3-b2a1-4c5d-9e8f-7a6b5c4d3e2f",
+  "enrollmentStatus": "ACTIVE"
+}
+```
+
+### 📝 Grade Management (`/api/grades`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/grades` | Get grades (filter by class, student) |
+| `GET` | `/api/grades/{id}` | Get grade by ID (UUID) |
+| `POST` | `/api/grades` | Create new grade |
+| `PUT` | `/api/grades/{id}` | Update grade |
+| `DELETE` | `/api/grades/{id}` | Delete grade |
+
+**Grade Request:**
+```json
+{
+  "classId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "studentId": "f6e5d4c3-b2a1-4c5d-9e8f-7a6b5c4d3e2f",
+  "assessmentKind": "exam",
+  "assessmentName": "Midterm Exam",
+  "score": 85.5,
+  "maxScore": 100,
+  "gradedAt": "2025-10-10T14:30:00Z"
+}
+```
+
+**Grade Response:**
+```json
+{
+  "success": true,
+  "message": "Grade created successfully",
+  "data": {
+    "id": "b2c3d4e5-f6a7-4b5c-9d8e-1f2a3b4c5d6e",
+    "classId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "className": "Calculus I - Group A",
+    "studentId": "f6e5d4c3-b2a1-4c5d-9e8f-7a6b5c4d3e2f",
+    "studentName": "Carlos Gomez",
+    "assessmentKind": "exam",
+    "assessmentName": "Midterm Exam",
+    "score": 85.5,
+    "maxScore": 100,
+    "percentage": 85.50,
+    "gradedAt": "2025-10-10T14:30:00Z",
+    "createdAt": "2025-10-11T10:00:00Z",
+    "updatedAt": "2025-10-11T10:00:00Z"
+  },
+  "timestamp": "2025-10-11T10:00:00Z"
+}
+```
+
+### 🤖 AI Recommendations (`/api/recommendations`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/recommendations` | Get recommendations (filter by recipient, class, audience) |
+| `GET` | `/api/recommendations/{id}` | Get recommendation by ID (UUID) |
+| `POST` | `/api/recommendations` | Create new recommendation |
+| `DELETE` | `/api/recommendations/{id}` | Delete recommendation |
 
 **Recommendation Example:**
 ```json
 {
-  "id": 1,
-  "usuario": {
-    "id": 2,
-    "nombre": "Carlos Gómez"
-  },
-  "clase": {
-    "id": 1,
-    "grupo": "A"
-  },
-  "mensaje": "Tu rendimiento en Álgebra está por debajo del promedio. Revisa los temas de factorización y ecuaciones.",
-  "tipo": "estudiante",
-  "fechaGeneracion": "2025-01-13T10:30:00"
+  "recipientId": "f6e5d4c3-b2a1-4c5d-9e8f-7a6b5c4d3e2f",
+  "classId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "message": "Your performance in Calculus is below average. Focus on derivatives and limits concepts.",
+  "audience": "STUDENT"
 }
 ```
 
-### 🔧 Utility Endpoints
+### 🔄 Error Response Format
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/test/db-connection` | Test database connection |
+**Validation Error:**
+```json
+{
+  "message": "Validation failed",
+  "status": 400,
+  "error": "Bad Request",
+  "path": "/api/users",
+  "details": [
+    "fullName: Full name is required",
+    "email: Email must be valid"
+  ],
+  "timestamp": "2025-10-11T10:00:00Z"
+}
+```
+
+**Not Found Error:**
+```json
+{
+  "message": "User not found with id: '550e8400-e29b-41d4-a716-446655440000'",
+  "status": 404,
+  "error": "Not Found",
+  "path": "/api/users/550e8400-e29b-41d4-a716-446655440000",
+  "details": [],
+  "timestamp": "2025-10-11T10:00:00Z"
+}
+```
 
 ## 📚 API Documentation
 
-### Swagger UI
-La documentación interactiva de la API está disponible en:
+Once the application is running, access the comprehensive interactive API documentation:
+
+### Swagger UI (Interactive)
 ```
-http://localhost:8080/swagger-ui/index.html
+http://localhost:8080/swagger-ui.html
 ```
 
-### OpenAPI JSON
-El esquema OpenAPI está disponible en:
+### OpenAPI Specification (JSON)
 ```
 http://localhost:8080/v3/api-docs
 ```
 
-### Características de la Documentación
-- ✅ **Interfaz Interactiva**: Prueba los endpoints directamente desde el navegador
-- ✅ **Documentación Completa**: Descripción detallada de cada endpoint
-- ✅ **Ejemplos de Respuesta**: Códigos de estado y mensajes de error
-- ✅ **Parámetros Documentados**: Descripción de todos los parámetros de entrada
-- ✅ **Modelos de Datos**: Esquemas de las entidades del sistema
+### Documentation Features
+- ✅ **Interactive Interface**: Test endpoints directly from your browser
+- ✅ **Complete Documentation**: Detailed description of every endpoint
+- ✅ **Request/Response Examples**: Sample data and status codes
+- ✅ **Documented Parameters**: Full description of all input parameters
+- ✅ **Data Models**: Schemas for all entities and DTOs
+- ✅ **Authentication Ready**: Support for Supabase Auth integration
+- ✅ **Error Response Examples**: Validation and error handling examples
 
 ## ⚙️ Installation & Setup
 
 ### 1. Prerequisites
 - **Java 21** installed (OpenJDK recommended)
-- **Maven 3.6+** installed
-- **PostgreSQL** (Supabase configured)
-- **IDE** (IntelliJ IDEA, Eclipse, or VS Code)
+- **Maven 3.6+** (or use included Maven wrapper `./mvnw`)
+- **PostgreSQL 14+** (Supabase account configured)
+- **IDE** (IntelliJ IDEA, Eclipse, or VS Code recommended)
 
 ### 2. Clone Repository
 ```bash
-git clone ethx42/student-performance-api
+git clone <your-repository-url>
 cd student-performance-api
 ```
 
 ### 3. Environment Variables Setup
 
-This project uses environment variables for configuration following professional Spring Boot practices.
+This project uses environment variables for configuration following Spring Boot best practices.
 
-**Using Environment Variables**
+#### Step 1: Copy and Configure Environment File
 
-1. **Set up environment variables in your shell:**
-   ```bash
-   # Copy the template and edit with your credentials
-   cp setup-env.sh.template setup-env.sh
-   nano setup-env.sh  # Edit with your actual Supabase credentials
-   
-   # Run the setup script
-   source setup-env.sh
-   ```
-
-2. **Start the application:**
-   ```bash
-   source ~/.sdkman/bin/sdkman-init.sh
-   ./mvnw spring-boot:run
-   ```
-
-**Note:** The `setup-env.sh` file is ignored by Git for security reasons. Never commit sensitive data to version control.
-
-**Required Environment Variables:**
 ```bash
-# Database Configuration
-DB_URL=jdbc:postgresql://your-pooler-host:5432/postgres
-DB_USERNAME=postgres.your-project-ref
-DB_PASSWORD=your-database-password
-DB_DRIVER=org.postgresql.Driver
+# Copy the template
+cp setup-env.sh.template setup-env.sh
 
-# Hibernate Configuration
-HIBERNATE_DDL_AUTO=update
-HIBERNATE_SHOW_SQL=true
-HIBERNATE_FORMAT_SQL=true
-HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-
-# Server Configuration
-SERVER_PORT=8080
-
-# Application Configuration
-APP_NAME=aiclass
+# Edit with your actual credentials
+nano setup-env.sh  # or use your preferred editor
 ```
 
-**Note:** Replace the placeholder values with your actual Supabase credentials.
+#### Step 2: Update Your Supabase Credentials
+
+Edit `setup-env.sh` and replace the placeholder values:
+
+```bash
+# Database Configuration - Get these from Supabase Dashboard
+export DB_URL="jdbc:postgresql://your-pooler-host.pooler.supabase.com:6543/postgres"
+export DB_USERNAME="postgres.your-project-ref"
+export DB_PASSWORD="your-secure-password"
+export DB_DRIVER="org.postgresql.Driver"
+
+# Hibernate Configuration
+export HIBERNATE_DDL_AUTO="validate"  # use 'update' for dev, 'validate' for prod
+export HIBERNATE_SHOW_SQL="true"
+export HIBERNATE_FORMAT_SQL="true"
+export HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQLDialect"
+
+# Server Configuration
+export SERVER_PORT="8080"
+
+# Application Configuration
+export APP_NAME="aiclass"
+```
+
+**⚠️ Security Note:** The `setup-env.sh` file is ignored by Git. Never commit sensitive credentials to version control.
 
 ### 4. Running the Application
 
-The application automatically loads environment variables from the `.env` file:
-
+#### Option 1: One-Line Command (Recommended)
 ```bash
+source setup-env.sh && ./mvnw spring-boot:run
+```
+
+#### Option 2: Separate Commands
+```bash
+# Load environment variables
+source setup-env.sh
+
 # Start the application
-source ~/.sdkman/bin/sdkman-init.sh
 ./mvnw spring-boot:run
 ```
 
-**Note:** The application will automatically:
-- ✅ Load variables from `.env` file
-- ✅ Use default values if `.env` is not found
-- ✅ Display loading status in console logs
+#### Successful Startup
+When running successfully, you'll see:
+```
+...
+INFO --- Tomcat started on port 8080 (http) with context path '/'
+INFO --- Started AiclassApplication in X.XXX seconds
+```
 
-The application will start on `http://localhost:8080`
+The application will be available at:
+- **API Base:** `http://localhost:8080/api`
+- **Swagger UI:** `http://localhost:8080/swagger-ui.html`
+- **OpenAPI Docs:** `http://localhost:8080/v3/api-docs`
+
+### 5. Verify Installation
+
+Test the API is running:
+```bash
+# Should return API information
+curl http://localhost:8080/api/users
+```
 
 ## 🗄️ Database
 
-### Current Configuration
+### Configuration
 - **Provider:** Supabase PostgreSQL
-- **Pooler:** Session Pooler (IPv4 compatible)
-- **DDL:** `update` (preserves data between restarts)
+- **Version:** PostgreSQL 17.6
+- **Connection:** Pooler connection for better performance
+- **DDL Mode:** 
+  - Development: `update` or `validate`
+  - Production: `validate` or `none` (recommended)
 - **Dialect:** PostgreSQL
 
-### Data Initialization
-The application includes a `DatabaseSeeder` that:
-- ✅ Checks if data already exists before inserting
-- ✅ Creates sample users (professor and students)
-- ✅ Creates subjects and classes
-- ✅ Assigns students to classes
-- ✅ Registers sample grades
-- ✅ Generates sample AI recommendations
+### Database Schema
+The application uses the following tables with UUID primary keys:
+
+| Table | Purpose | Key Features |
+|-------|---------|--------------|
+| `users` | Teachers and students | Supabase Auth integration, JSONB metadata |
+| `subjects` | Academic subjects | Unique subject codes, credits tracking |
+| `classes` | Class sections | Teacher assignment, scheduling, semester-based |
+| `enrollments` | Student enrollments | Status tracking (ACTIVE/DROPPED/COMPLETED) |
+| `grades` | Student assessments | Automatic percentage calculation |
+| `ai_recommendations` | AI suggestions | Targeted by audience (STUDENT/TEACHER) |
+
+### Row Level Security (RLS)
+For production deployment with Supabase:
+- Enable RLS on all tables
+- Configure policies based on Supabase Auth user roles
+- Use service role key for backend operations
+- See `scripts/add_auth_fields_and_rls.sql` for RLS setup
+
+### Database Migrations
+Database schema changes are managed through:
+- Supabase migrations in `supabase/migrations/`
+- Hibernate DDL for development (set to `update` or `validate`)
+- Manual SQL scripts in `scripts/` directory
 
 ## 🧪 Testing
 
-### Run Tests
+### Run All Tests
 ```bash
 ./mvnw test
 ```
 
-### Database Connection Test
+### Run Specific Test
 ```bash
 ./mvnw test -Dtest=DatabaseConnectionTest
 ```
 
-### Test Connection Endpoint
+### Test with Coverage
 ```bash
-curl http://localhost:8080/api/test/db-connection
+./mvnw clean test jacoco:report
 ```
+
+### Manual API Testing
+
+**Using cURL:**
+```bash
+# Get all users
+curl http://localhost:8080/api/users
+
+# Create a user
+curl -X POST http://localhost:8080/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "Test User",
+    "email": "test@example.com",
+    "role": "STUDENT"
+  }'
+```
+
+**Using the Swagger UI:**
+Navigate to `http://localhost:8080/swagger-ui.html` for interactive testing.
 
 ## 📦 Building for Production
 
-### Create JAR
+### Build JAR Package
 ```bash
-./mvnw clean package
+./mvnw clean package -DskipTests
 ```
 
-### Run JAR
+### Run Production JAR
 ```bash
+# Make sure environment variables are set
+export DB_URL="jdbc:postgresql://your-production-db:5432/postgres"
+export DB_USERNAME="your-username"
+export DB_PASSWORD="your-password"
+export HIBERNATE_DDL_AUTO="validate"
+export HIBERNATE_SHOW_SQL="false"
+export SERVER_PORT="8080"
+
+# Run the JAR
 java -jar target/aiclass-0.0.1-SNAPSHOT.jar
+```
+
+### Docker Deployment (Optional)
+
+**Dockerfile:**
+```dockerfile
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/aiclass-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+**Build and Run:**
+```bash
+docker build -t aiclass-api .
+docker run -p 8080:8080 \
+  -e DB_URL="jdbc:postgresql://..." \
+  -e DB_USERNAME="..." \
+  -e DB_PASSWORD="..." \
+  aiclass-api
 ```
 
 ## 🏗️ Project Structure
 
+The project follows clean architecture principles with clear separation of concerns:
+
 ```
-src/
-├── main/
-│   ├── java/
-│   │   └── com/viveek/aiclass/
-│   │       ├── AiclassApplication.java          # Main application class
-│   │       ├── controller/                      # REST Controllers
-│   │       │   ├── ClaseController.java
-│   │       │   ├── MateriaController.java
-│   │       │   ├── NotaController.java
-│   │       │   ├── RecomendacionController.java
-│   │       │   ├── UsuarioController.java
-│   │       │   └── DatabaseTestController.java
-│   │       ├── model/                           # JPA Entities
-│   │       │   ├── Clase.java
-│   │       │   ├── EstudianteClase.java
-│   │       │   ├── Materia.java
-│   │       │   ├── Nota.java
-│   │       │   ├── RecomendacionIA.java
-│   │       │   └── Usuario.java
-│   │       ├── repository/                      # JPA Repositories
-│   │       │   ├── ClaseRepository.java
-│   │       │   ├── EstudianteClaseRepository.java
-│   │       │   ├── MateriaRepository.java
-│   │       │   ├── NotaRepository.java
-│   │       │   ├── RecomendacionIARepository.java
-│   │       │   └── UsuarioRepository.java
-│   │       └── config/                         # Configuration
-│   │           └── DatabaseSeeder.java
-│   └── resources/
-│       ├── application.yml                     # Main configuration
-│       └── application.yml.template           # Configuration template
-└── test/
-    └── java/
-        └── com/viveek/aiclass/
-            ├── AiclassApplicationTests.java
-            └── DatabaseConnectionTest.java
+src/main/java/com/viveek/aiclass/
+├── AiclassApplication.java              # Main application entry point
+│
+├── api/                                 # API Layer
+│   └── controller/                      # REST Controllers
+│       ├── UserController.java          # User management endpoints
+│       ├── SubjectController.java       # Subject management endpoints
+│       ├── ClassController.java         # Class management endpoints
+│       ├── EnrollmentController.java    # Enrollment management endpoints
+│       ├── GradeController.java         # Grade management endpoints
+│       └── RecommendationController.java # AI recommendations endpoints
+│
+├── domain/                              # Domain Layer
+│   ├── model/                           # JPA Entities (UUID primary keys)
+│   │   ├── BaseEntity.java              # Base entity with timestamps
+│   │   ├── User.java                    # User entity (teachers/students)
+│   │   ├── Subject.java                 # Subject entity
+│   │   ├── Class.java                   # Class entity
+│   │   ├── Enrollment.java              # Enrollment entity
+│   │   ├── Grade.java                   # Grade entity
+│   │   ├── AiRecommendation.java        # AI recommendation entity
+│   │   └── enums/                       # Enumerations
+│   │       ├── UserRole.java            # TEACHER, STUDENT
+│   │       ├── Semester.java            # FIRST, SECOND, SUMMER
+│   │       ├── EnrollmentStatus.java    # ACTIVE, DROPPED, COMPLETED
+│   │       └── RecommendationAudience.java # STUDENT, TEACHER
+│   │
+│   └── repository/                      # JPA Repositories
+│       ├── UserRepository.java
+│       ├── SubjectRepository.java
+│       ├── ClassRepository.java
+│       ├── EnrollmentRepository.java
+│       ├── GradeRepository.java
+│       └── AiRecommendationRepository.java
+│
+├── dto/                                 # Data Transfer Objects
+│   ├── request/                         # Request DTOs
+│   │   ├── CreateUserRequest.java
+│   │   ├── UpdateUserRequest.java
+│   │   ├── CreateSubjectRequest.java
+│   │   ├── UpdateSubjectRequest.java
+│   │   ├── CreateClassRequest.java
+│   │   ├── UpdateClassRequest.java
+│   │   ├── CreateEnrollmentRequest.java
+│   │   ├── UpdateEnrollmentRequest.java
+│   │   ├── CreateGradeRequest.java
+│   │   ├── UpdateGradeRequest.java
+│   │   └── CreateRecommendationRequest.java
+│   │
+│   └── response/                        # Response DTOs
+│       ├── ApiResponse.java             # Generic wrapper for all responses
+│       ├── ErrorResponse.java           # Error response format
+│       ├── UserResponse.java
+│       ├── SubjectResponse.java
+│       ├── ClassResponse.java
+│       ├── EnrollmentResponse.java
+│       ├── GradeResponse.java
+│       └── RecommendationResponse.java
+│
+├── service/                             # Service Layer (interfaces)
+│   ├── UserService.java
+│   ├── SubjectService.java
+│   ├── ClassService.java
+│   ├── EnrollmentService.java
+│   ├── GradeService.java
+│   ├── RecommendationService.java
+│   │
+│   └── impl/                            # Service implementations
+│       ├── UserServiceImpl.java
+│       ├── SubjectServiceImpl.java
+│       ├── ClassServiceImpl.java
+│       ├── EnrollmentServiceImpl.java
+│       ├── GradeServiceImpl.java
+│       └── RecommendationServiceImpl.java
+│
+├── mapper/                              # DTO Mappers
+│   └── EntityMapper.java                # MapStruct mapper interface
+│
+├── exception/                           # Exception Handling
+│   ├── ResourceNotFoundException.java   # 404 errors
+│   ├── ResourceAlreadyExistsException.java # 409 conflicts
+│   ├── InvalidRequestException.java     # 400 bad requests
+│   ├── BusinessException.java           # Business logic errors
+│   └── GlobalExceptionHandler.java      # Global exception handler
+│
+└── config/                              # Configuration
+    ├── SwaggerConfig.java               # OpenAPI/Swagger configuration
+    └── JpaAuditingConfig.java          # JPA auditing configuration
+
+src/main/resources/
+├── application.properties               # Main configuration
+└── application-local.properties         # Local development overrides
+
+src/test/java/com/viveek/aiclass/
+├── AiclassApplicationTests.java
+└── DatabaseConnectionTest.java
+
+Additional Files:
+├── scripts/                             # Database scripts
+│   ├── add_auth_fields_and_rls.sql     # RLS setup for Supabase
+│   └── run-supabase-migration.sh       # Migration runner
+├── supabase/                            # Supabase configuration
+│   ├── config.toml
+│   └── migrations/                      # Database migrations
+├── setup-env.sh.template               # Environment setup template
+├── pom.xml                             # Maven dependencies
+└── README.md                           # This file
 ```
+
+### Architecture Highlights
+
+- **Clean Architecture**: Clear separation between API, Domain, Service, and Data layers
+- **DTOs**: Request/Response objects separate from domain entities
+- **Service Layer**: Business logic isolated from controllers
+- **Global Exception Handling**: Consistent error responses across all endpoints
+- **MapStruct**: Automatic DTO ↔ Entity mapping
+- **UUID Primary Keys**: Modern, distributed-friendly identifiers
+- **JSONB Support**: Flexible metadata fields for extensibility
 
 ## 🔧 Advanced Configuration
 
-### Environment Variables
-The application supports the following environment variables:
+### Environment Variables Reference
 
-| Variable | Description | Default Value |
-|----------|-------------|---------------|
-| `DB_URL` | Database connection URL | *(required)* |
-| `DB_USERNAME` | Database username | *(required)* |
-| `DB_PASSWORD` | Database password | *(required)* |
-| `DB_DRIVER` | Database driver | `org.postgresql.Driver` |
-| `HIBERNATE_DDL_AUTO` | Hibernate DDL mode | `update` |
-| `HIBERNATE_SHOW_SQL` | Show SQL queries | `true` |
-| `SERVER_PORT` | Application port | `8080` |
+| Variable | Description | Default | Recommended (Dev) | Recommended (Prod) |
+|----------|-------------|---------|-------------------|-------------------|
+| `DB_URL` | JDBC connection URL | *(required)* | `jdbc:postgresql://...` | `jdbc:postgresql://...` |
+| `DB_USERNAME` | Database username | *(required)* | `postgres.xxx` | `postgres.xxx` |
+| `DB_PASSWORD` | Database password | *(required)* | Your password | Secure password |
+| `DB_DRIVER` | Database driver class | `org.postgresql.Driver` | Default | Default |
+| `HIBERNATE_DDL_AUTO` | Schema management | `validate` | `update` or `validate` | `validate` or `none` |
+| `HIBERNATE_SHOW_SQL` | Log SQL statements | `true` | `true` | `false` |
+| `HIBERNATE_FORMAT_SQL` | Format SQL logs | `true` | `true` | `false` |
+| `HIBERNATE_DIALECT` | SQL dialect | `PostgreSQLDialect` | Default | Default |
+| `SERVER_PORT` | HTTP server port | `8080` | `8080` | `8080` or `80` |
+| `APP_NAME` | Application name | `aiclass` | `aiclass` | `aiclass` |
+| `LOG_LEVEL` | Logging level | `INFO` | `DEBUG` | `INFO` or `WARN` |
+| `SQL_LOG_LEVEL` | SQL logging level | `DEBUG` | `DEBUG` | `WARN` |
 
-### Production Environment Variables
+### Hibernate DDL Modes
+
+- **`none`**: No schema management (production recommended)
+- **`validate`**: Validate schema matches entities (safest for production)
+- **`update`**: Update schema to match entities (development only)
+- **`create`**: Drop and recreate schema on startup (dangerous!)
+- **`create-drop`**: Drop schema on shutdown (testing only)
+
+### Production Best Practices
+
 ```bash
-export DB_URL=jdbc:postgresql://your-production-host:5432/your-database
-export DB_USERNAME=your-username
-export DB_PASSWORD=your-secure-password
-export HIBERNATE_DDL_AUTO=validate
-export HIBERNATE_SHOW_SQL=false
-export SERVER_PORT=80
+# Production environment variables
+export DB_URL="jdbc:postgresql://production-host.pooler.supabase.com:6543/postgres"
+export DB_USERNAME="postgres.production-ref"
+export DB_PASSWORD="$(cat /secrets/db-password)"  # From secrets manager
+export HIBERNATE_DDL_AUTO="validate"               # Never use 'update' in production
+export HIBERNATE_SHOW_SQL="false"                  # Don't log SQL in production
+export SERVER_PORT="8080"
+export LOG_LEVEL="WARN"
+export SQL_LOG_LEVEL="WARN"
 ```
 
-### DDL Configuration
-- **Development:** `update` (preserves data, updates schema as needed)
-- **Production:** `validate` or `none` (doesn't modify schema)
+### Local Development Setup
 
-## 🚀 Implemented Features
+```bash
+# Development environment variables
+export DB_URL="jdbc:postgresql://localhost:5432/aiclass_dev"
+export DB_USERNAME="postgres"
+export DB_PASSWORD="dev_password"
+export HIBERNATE_DDL_AUTO="update"
+export HIBERNATE_SHOW_SQL="true"
+export SERVER_PORT="8080"
+export LOG_LEVEL="DEBUG"
+```
 
-### ✅ Completed
-- [x] Complete data model with JPA
-- [x] REST controllers for all entities
-- [x] Supabase PostgreSQL connection
-- [x] Sample data seeder
-- [x] Database connection test
-- [x] Development configuration with DevTools
+## 🚀 Features & Status
 
-### 🔄 In Development
-- [ ] Authentication and authorization
-- [ ] Data validation
-- [ ] Custom error handling
-- [ ] API documentation with Swagger
-- [ ] Complete unit tests
+### ✅ Completed (v2.0)
+- [x] **Clean Architecture**: Proper layering (API → Service → Repository)
+- [x] **Complete REST API**: All CRUD operations for 6 entities
+- [x] **UUID Primary Keys**: Modern, distributed-friendly identifiers
+- [x] **DTOs**: Request/Response objects with validation
+- [x] **Global Exception Handling**: Consistent error responses
+- [x] **API Documentation**: Interactive Swagger/OpenAPI docs
+- [x] **JSONB Support**: Flexible metadata fields
+- [x] **Supabase Integration**: PostgreSQL with pooler connection
+- [x] **Automatic Auditing**: Created/updated timestamps
+- [x] **Environment Configuration**: Externalized configuration
+- [x] **MapStruct Mapping**: Automatic DTO ↔ Entity conversion
+- [x] **Input Validation**: Bean Validation annotations
+- [x] **Enrollment System**: Student enrollment with status tracking
+- [x] **Grade Calculation**: Automatic percentage calculation
+- [x] **Query Filtering**: Filter endpoints by various criteria
 
-### 📋 Roadmap
-- [ ] AI services integration
+### 🔄 In Progress
+- [ ] **Unit Tests**: Comprehensive test coverage
+- [ ] **Integration Tests**: End-to-end API testing
+- [ ] **Authentication**: Supabase Auth JWT validation
+- [ ] **Authorization**: Role-based access control (RBAC)
+- [ ] **Performance Metrics**: Spring Boot Actuator integration
+
+### 📋 Roadmap (Future Versions)
+
+#### v2.1 - Security & Testing
+- [ ] JWT token validation middleware
+- [ ] Row Level Security (RLS) policies
+- [ ] Comprehensive unit test suite
+- [ ] Integration test suite
+- [ ] API rate limiting
+
+#### v2.2 - Analytics & Reporting
 - [ ] Student performance analytics
-- [ ] Metrics dashboard
-- [ ] Real-time notifications
-- [ ] Advanced reporting API
-- [ ] Redis caching
-- [ ] Monitoring and logging
-- [ ] Docker deployment
+- [ ] Class performance metrics
+- [ ] Grade distribution reports
+- [ ] CSV/Excel export functionality
+- [ ] Batch operations support
 
-## ⚠️ Security Notes
+#### v2.3 - AI & Advanced Features
+- [ ] AI-powered recommendations engine
+- [ ] Predictive analytics for student performance
+- [ ] Real-time notifications (WebSocket)
+- [ ] Email notifications
+- [ ] Advanced search and filtering
 
-- 🔒 Update database credentials before production deployment
-- 🔐 Implement authentication/authorization
-- 🌐 Use HTTPS in production
-- 🔄 Update dependencies regularly
-- 📝 Use environment variables for sensitive configuration
+#### v3.0 - Enterprise Features
+- [ ] Redis caching layer
+- [ ] Multi-tenancy support
+- [ ] Monitoring and logging (ELK stack)
+- [ ] Kubernetes deployment
+- [ ] API versioning
+- [ ] GraphQL support
+
+## ⚠️ Security Considerations
+
+### Development
+- ✅ Environment variables for sensitive data
+- ✅ `.gitignore` configured for secrets
+- ⚠️ Authentication not yet implemented
+
+### Production Checklist
+- [ ] **Enable HTTPS**: Use TLS/SSL certificates
+- [ ] **Implement Authentication**: Integrate Supabase Auth JWT validation
+- [ ] **Enable RLS**: Row Level Security on database
+- [ ] **Secure Secrets**: Use secrets manager (AWS Secrets Manager, HashiCorp Vault)
+- [ ] **Input Sanitization**: Already implemented via Bean Validation
+- [ ] **SQL Injection Protection**: JPA/Hibernate provides protection
+- [ ] **CORS Configuration**: Configure allowed origins
+- [ ] **Rate Limiting**: Implement API rate limiting
+- [ ] **Monitoring**: Set up application monitoring
+- [ ] **Regular Updates**: Keep dependencies up-to-date
+- [ ] **Backup Strategy**: Regular database backups
+- [ ] **Audit Logging**: Log security events
+
+### Recommended Security Headers
+```java
+// Add to SecurityConfig when implementing authentication
+http.headers()
+    .contentSecurityPolicy("default-src 'self'")
+    .and()
+    .frameOptions().deny()
+    .and()
+    .xssProtection().enable();
+```
+
+## 📚 Additional Documentation
+
+- **[API Migration Guide](API_MIGRATION_GUIDE.md)**: Migrating from v1.x
+- **[Refactoring Plan](REFACTORING_PLAN.md)**: Detailed refactoring documentation
+- **[Refactoring Summary](REFACTORING_SUMMARY.md)**: Summary of changes made
+- **[Quick Start Guide](QUICK_START.md)**: Quick setup instructions
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow clean architecture principles
+- Write unit tests for new features
+- Update API documentation
+- Follow Java coding conventions
+- Use meaningful commit messages
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👥 Authors
+## 👥 Authors & Contributors
 
-- **Santiago Torres** - Initial development
+- **Santiago Torres** - Initial development and refactoring
+- **AIClass Team** - Ongoing development
 
-## 🆘 Support
+## 🆘 Support & Contact
 
 If you encounter any issues or have questions:
 
-1. Check existing issues in the repository
-2. Create a new issue with detailed information
-3. Contact the development team
+1. **Check Documentation**: Review this README and other docs
+2. **Search Issues**: Look for existing issues in the repository
+3. **Create Issue**: Open a new issue with detailed information
+4. **Contact Team**: Reach out to the development team
+
+### Reporting Issues
+
+When reporting issues, please include:
+- Spring Boot version
+- Java version
+- Database version
+- Error messages and stack traces
+- Steps to reproduce
+- Expected vs actual behavior
+
+## 🙏 Acknowledgments
+
+- Spring Boot team for the excellent framework
+- Supabase team for the database platform
+- All contributors and users of this project
 
 ---
 
-**Happy Coding! :)🎓💻** 
+**Version**: 2.0.0  
+**Last Updated**: October 2025  
+**Status**: Active Development
+
+**Happy Coding! 🎓💻** 

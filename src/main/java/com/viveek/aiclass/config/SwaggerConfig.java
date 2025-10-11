@@ -18,8 +18,8 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("AIClass API")
-                        .description("API para la plataforma de gestión académica AIClass con análisis de rendimiento estudiantil")
-                        .version("1.0.0")
+                        .description("API for AIClass academic management platform with student performance analytics")
+                        .version("2.0.0")
                         .contact(new Contact()
                                 .name("AIClass Team")
                                 .email("contact@aiclass.com")
@@ -30,10 +30,10 @@ public class SwaggerConfig {
                 .servers(List.of(
                         new Server()
                                 .url("http://localhost:8080")
-                                .description("Servidor de Desarrollo"),
+                                .description("Development Server"),
                         new Server()
                                 .url("https://api.aiclass.com")
-                                .description("Servidor de Producción")
+                                .description("Production Server")
                 ));
     }
 }
