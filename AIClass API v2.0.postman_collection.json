@@ -1,0 +1,1166 @@
+{
+	"info": {
+		"_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
+		"name": "AIClass API v2.0",
+		"description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "48420976",
+		"_collection_link": "https://santiagov62-4326825.postman.co/workspace/Santiago-Torres-G.'s-Workspace~9202680e-a0b3-4b0b-8b13-876eeb3c39a6/collection/48420976-95d1e985-d694-4f8f-874e-8d710d0cdaf0?action=share&source=collection_link&creator=48420976"
+	},
+	"item": [
+		{
+			"name": "👤 Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Get all users in the system (teachers and students)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Teachers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users?role=TEACHER",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "role",
+									"value": "TEACHER"
+								}
+							]
+						},
+						"description": "Get all users with TEACHER role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users?role=STUDENT",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "role",
+									"value": "STUDENT"
+								}
+							]
+						},
+						"description": "Get all users with STUDENT role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Get a specific user by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/email/john@example.com",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"email",
+								"john@example.com"
+							]
+						},
+						"description": "Get a user by their email address"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by Auth ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/auth/550e8400-e29b-41d4-a716-446655440000",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"auth",
+								"550e8400-e29b-41d4-a716-446655440000"
+							]
+						},
+						"description": "Get a user by their Supabase Auth user ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create User (Teacher)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"authUserId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"fullName\": \"Dr. John Smith\",\n  \"email\": \"john.smith@university.edu\",\n  \"role\": \"TEACHER\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 305\",\n    \"phone\": \"+1-555-0123\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new teacher user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create User (Student)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"authUserId\": \"650e8400-e29b-41d4-a716-446655440001\",\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane.doe@student.edu\",\n  \"role\": \"STUDENT\",\n  \"metadata\": {\n    \"studentId\": \"STU2025001\",\n    \"major\": \"Computer Science\",\n    \"year\": 2\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new student user"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Dr. John Smith Updated\",\n  \"email\": \"john.smith.new@university.edu\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building B, Room 401\",\n    \"phone\": \"+1-555-0124\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Update an existing user"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Delete a user by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📚 Subjects",
+			"item": [
+				{
+					"name": "Get All Subjects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects"
+							]
+						},
+						"description": "Get all subjects in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subject by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects",
+								"{{subject_id}}"
+							]
+						},
+						"description": "Get a specific subject by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subject by Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/subjects/code/CS101",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects",
+								"code",
+								"CS101"
+							]
+						},
+						"description": "Get a subject by its unique code"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subject",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"description\": \"Fundamental concepts of computer science including algorithms, data structures, and programming\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"prerequisites\": [],\n    \"department\": \"Computer Science\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects"
+							]
+						},
+						"description": "Create a new subject"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Subject",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Introduction to Computer Science - Updated\",\n  \"description\": \"Updated course description\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"prerequisites\": [\"MATH100\"],\n    \"department\": \"Computer Science\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects",
+								"{{subject_id}}"
+							]
+						},
+						"description": "Update an existing subject"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Subject",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects",
+								"{{subject_id}}"
+							]
+						},
+						"description": "Delete a subject by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏫 Classes",
+			"item": [
+				{
+					"name": "Get All Classes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						},
+						"description": "Get all classes in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Classes by Teacher",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes?teacherId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							],
+							"query": [
+								{
+									"key": "teacherId",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Get all classes taught by a specific teacher"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Classes by Subject",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes?subjectId={{subject_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							],
+							"query": [
+								{
+									"key": "subjectId",
+									"value": "{{subject_id}}"
+								}
+							]
+						},
+						"description": "Get all classes for a specific subject"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Classes by Year and Semester",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes?year=2025&semester=spring",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							],
+							"query": [
+								{
+									"key": "year",
+									"value": "2025"
+								},
+								{
+									"key": "semester",
+									"value": "spring"
+								}
+							]
+						},
+						"description": "Get all classes for a specific year and semester"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Class by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes/{{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"{{class_id}}"
+							]
+						},
+						"description": "Get a specific class by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Class",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subjectId\": \"{{subject_id}}\",\n  \"teacherId\": \"{{user_id}}\",\n  \"year\": 2025,\n  \"semester\": \"SPRING\",\n  \"groupCode\": \"A\",\n  \"schedule\": \"Mon/Wed/Fri 10:00-11:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 201\",\n    \"capacity\": 30,\n    \"mode\": \"hybrid\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						},
+						"description": "Create a new class section"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Class",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"schedule\": \"Mon/Wed/Fri 14:00-15:30\",\n  \"metadata\": {\n    \"room\": \"Building D, Room 305\",\n    \"capacity\": 35,\n    \"mode\": \"in-person\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/classes/{{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"{{class_id}}"
+							]
+						},
+						"description": "Update an existing class"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Class",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes/{{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"{{class_id}}"
+							]
+						},
+						"description": "Delete a class by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🎓 Enrollments",
+			"item": [
+				{
+					"name": "Get All Enrollments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							]
+						},
+						"description": "Get all enrollments in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Enrollments by Class",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments?classId={{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							],
+							"query": [
+								{
+									"key": "classId",
+									"value": "{{class_id}}"
+								}
+							]
+						},
+						"description": "Get all enrollments for a specific class"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Enrollments by Student",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments?studentId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							],
+							"query": [
+								{
+									"key": "studentId",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Get all enrollments for a specific student"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Enrollments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments?status=ACTIVE",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "ACTIVE"
+								}
+							]
+						},
+						"description": "Get all active enrollments"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Enrollment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments",
+								"{{enrollment_id}}"
+							]
+						},
+						"description": "Get a specific enrollment by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Enrollment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"enrollmentStatus\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/enrollments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							]
+						},
+						"description": "Enroll a student in a class"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Enrollment Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"enrollmentStatus\": \"DROPPED\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments",
+								"{{enrollment_id}}"
+							]
+						},
+						"description": "Update enrollment status (ACTIVE, DROPPED, COMPLETED)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Enrollment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments",
+								"{{enrollment_id}}"
+							]
+						},
+						"description": "Delete an enrollment by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📝 Grades",
+			"item": [
+				{
+					"name": "Get All Grades",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							]
+						},
+						"description": "Get all grades in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Grades by Class",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades?classId={{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							],
+							"query": [
+								{
+									"key": "classId",
+									"value": "{{class_id}}"
+								}
+							]
+						},
+						"description": "Get all grades for a specific class"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Grades by Student",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades?studentId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							],
+							"query": [
+								{
+									"key": "studentId",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Get all grades for a specific student"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Grade by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades/{{grade_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"{{grade_id}}"
+							]
+						},
+						"description": "Get a specific grade by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Grade",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"exam\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							]
+						},
+						"description": "Create a new grade. Percentage is automatically calculated."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Grade",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"assessmentName\": \"Midterm Exam - Updated\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades/{{grade_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"{{grade_id}}"
+							]
+						},
+						"description": "Update an existing grade"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Grade",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades/{{grade_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"{{grade_id}}"
+							]
+						},
+						"description": "Delete a grade by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🤖 AI Recommendations",
+			"item": [
+				{
+					"name": "Get All Recommendations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							]
+						},
+						"description": "Get all AI recommendations in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations by Recipient",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations?recipientId={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							],
+							"query": [
+								{
+									"key": "recipientId",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Get all recommendations for a specific user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations by Class",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations?classId={{class_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							],
+							"query": [
+								{
+									"key": "classId",
+									"value": "{{class_id}}"
+								}
+							]
+						},
+						"description": "Get all recommendations for a specific class"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations by Audience",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations?audience=STUDENT",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							],
+							"query": [
+								{
+									"key": "audience",
+									"value": "STUDENT"
+								}
+							]
+						},
+						"description": "Get all recommendations for a specific audience (STUDENT or TEACHER)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendation by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations",
+								"{{recommendation_id}}"
+							]
+						},
+						"description": "Get a specific recommendation by UUID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Recommendation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipientId\": \"{{user_id}}\",\n  \"classId\": \"{{class_id}}\",\n  \"audience\": \"STUDENT\",\n  \"message\": \"Your performance in this class has been excellent. Keep up the good work! Consider taking advanced courses in this subject.\",\n  \"metadata\": {\n    \"confidence\": 0.95,\n    \"category\": \"encouragement\",\n    \"priority\": \"medium\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/recommendations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							]
+						},
+						"description": "Create a new AI recommendation"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Recommendation",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations",
+								"{{recommendation_id}}"
+							]
+						},
+						"description": "Delete a recommendation by ID"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "subject_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "class_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "enrollment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "grade_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "recommendation_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

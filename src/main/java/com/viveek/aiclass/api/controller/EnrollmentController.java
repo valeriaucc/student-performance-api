@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +32,8 @@ public class EnrollmentController {
     private final EnrollmentService enrollmentService;
 
     @PostMapping
-    @Operation(summary = "Enroll a student in a class", description = "Creates a new enrollment")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Enroll a student in a class", description = "Creates a new enrollment (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Student enrolled successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -46,7 +48,8 @@ public class EnrollmentController {
     }
 
     @PatchMapping("/{id}")
-    @Operation(summary = "Update enrollment status", description = "Updates the status of an enrollment")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Update enrollment status", description = "Updates the status of an enrollment (TEACHER only)")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> updateEnrollment(
             @Parameter(description = "Enrollment ID") @PathVariable UUID id,
             @Valid @RequestBody UpdateEnrollmentRequest request) {
@@ -55,7 +58,8 @@ public class EnrollmentController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get enrollment by ID", description = "Retrieves an enrollment by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get enrollment by ID", description = "Retrieves an enrollment by its ID (authenticated users)")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> getEnrollmentById(
             @Parameter(description = "Enrollment ID") @PathVariable UUID id) {
         EnrollmentResponse enrollment = enrollmentService.getEnrollmentById(id);
@@ -63,7 +67,8 @@ public class EnrollmentController {
     }
 
     @GetMapping
-    @Operation(summary = "Get enrollments", description = "Retrieves enrollments with optional filters")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get enrollments", description = "Retrieves enrollments with optional filters (authenticated users)")
     public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getEnrollments(
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
             @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId,
@@ -85,7 +90,8 @@ public class EnrollmentController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete enrollment", description = "Deletes an enrollment by its ID")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Delete enrollment", description = "Deletes an enrollment by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Enrollment deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Enrollment not found")

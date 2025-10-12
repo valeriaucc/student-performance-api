@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +31,8 @@ public class SubjectController {
     private final SubjectService subjectService;
 
     @PostMapping
-    @Operation(summary = "Create a new subject", description = "Creates a new academic subject")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Create a new subject", description = "Creates a new academic subject (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Subject created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -44,7 +46,8 @@ public class SubjectController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update subject", description = "Updates an existing subject")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Update subject", description = "Updates an existing subject (TEACHER only)")
     public ResponseEntity<ApiResponse<SubjectResponse>> updateSubject(
             @Parameter(description = "Subject ID") @PathVariable UUID id,
             @Valid @RequestBody UpdateSubjectRequest request) {
@@ -53,7 +56,8 @@ public class SubjectController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get subject by ID", description = "Retrieves a subject by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get subject by ID", description = "Retrieves a subject by its ID (authenticated users)")
     public ResponseEntity<ApiResponse<SubjectResponse>> getSubjectById(
             @Parameter(description = "Subject ID") @PathVariable UUID id) {
         SubjectResponse subject = subjectService.getSubjectById(id);
@@ -61,7 +65,8 @@ public class SubjectController {
     }
 
     @GetMapping("/code/{code}")
-    @Operation(summary = "Get subject by code", description = "Retrieves a subject by its code")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get subject by code", description = "Retrieves a subject by its code (authenticated users)")
     public ResponseEntity<ApiResponse<SubjectResponse>> getSubjectByCode(
             @Parameter(description = "Subject code") @PathVariable String code) {
         SubjectResponse subject = subjectService.getSubjectByCode(code);
@@ -69,14 +74,16 @@ public class SubjectController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all subjects", description = "Retrieves all subjects")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get all subjects", description = "Retrieves all subjects (authenticated users)")
     public ResponseEntity<ApiResponse<List<SubjectResponse>>> getAllSubjects() {
         List<SubjectResponse> subjects = subjectService.getAllSubjects();
         return ResponseEntity.ok(ApiResponse.success(subjects));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete subject", description = "Deletes a subject by its ID")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Delete subject", description = "Deletes a subject by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Subject deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Subject not found")

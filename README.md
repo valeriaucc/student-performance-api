@@ -731,22 +731,25 @@ export LOG_LEVEL="DEBUG"
 - [x] **Enrollment System**: Student enrollment with status tracking
 - [x] **Grade Calculation**: Automatic percentage calculation
 - [x] **Query Filtering**: Filter endpoints by various criteria
+- [x] **JWT Authentication**: Supabase Auth JWT token validation
+- [x] **Authorization (RBAC)**: Role-based access control with @PreAuthorize
+- [x] **Row Level Security**: Database-level security policies
+- [x] **CORS Configuration**: Frontend integration support
+- [x] **Security Context**: Helper utilities for accessing current user
 
 ### 🔄 In Progress
 - [ ] **Unit Tests**: Comprehensive test coverage
 - [ ] **Integration Tests**: End-to-end API testing
-- [ ] **Authentication**: Supabase Auth JWT validation
-- [ ] **Authorization**: Role-based access control (RBAC)
 - [ ] **Performance Metrics**: Spring Boot Actuator integration
 
 ### 📋 Roadmap (Future Versions)
 
-#### v2.1 - Security & Testing
-- [ ] JWT token validation middleware
-- [ ] Row Level Security (RLS) policies
+#### v2.1 - Testing & Quality
 - [ ] Comprehensive unit test suite
-- [ ] Integration test suite
+- [ ] Integration test suite with security tests
 - [ ] API rate limiting
+- [ ] Performance benchmarks
+- [ ] Load testing
 
 #### v2.2 - Analytics & Reporting
 - [ ] Student performance analytics
@@ -770,44 +773,85 @@ export LOG_LEVEL="DEBUG"
 - [ ] API versioning
 - [ ] GraphQL support
 
-## ⚠️ Security Considerations
+## 🔐 Security & Authentication
 
-### Development
-- ✅ Environment variables for sensitive data
-- ✅ `.gitignore` configured for secrets
-- ⚠️ Authentication not yet implemented
+### ✅ Implemented Security Features
+
+The AIClass API implements enterprise-grade security:
+
+- ✅ **JWT Authentication**: Validates Supabase Auth tokens using JWK Set
+- ✅ **Role-Based Access Control (RBAC)**: `TEACHER` and `STUDENT` roles with method-level security
+- ✅ **Row Level Security (RLS)**: Database-level policies ensure data isolation
+- ✅ **CORS Configuration**: Secure cross-origin requests for frontend apps
+- ✅ **Stateless Sessions**: No server-side session storage (JWT-based)
+- ✅ **Input Validation**: Bean Validation prevents injection attacks
+- ✅ **SQL Injection Protection**: JPA/Hibernate parameterized queries
+
+### 🚀 Quick Setup
+
+1. **Configure Supabase credentials** in `application-local.properties`:
+   ```properties
+   supabase.jwt.jwk-set-uri=https://your-project.supabase.co/auth/v1/jwks
+   supabase.url=https://your-project.supabase.co
+   supabase.anon.key=your-anon-key
+   security.cors.allowed-origins=http://localhost:3000
+   ```
+
+2. **Apply RLS policies to database**:
+   ```bash
+   psql $DB_URL -f supabase/migrations/20250111000000_comprehensive_auth_and_rls.sql
+   ```
+
+3. **Test authentication**:
+   ```bash
+   curl http://localhost:8080/api/users \
+     -H "Authorization: Bearer YOUR_SUPABASE_JWT"
+   ```
+
+📖 **[Complete Authentication Guide](AUTHENTICATION_GUIDE.md)** - Detailed setup, testing, and troubleshooting
+
+### Authorization Matrix
+
+| Resource | GET (List) | GET (Single) | POST | PUT/PATCH | DELETE |
+|----------|-----------|-------------|------|-----------|--------|
+| **Users** | 🔑 TEACHER | 🔑 TEACHER | ✅ Auth | ✅ Own | ✅ Own |
+| **Classes** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
+| **Grades** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
+| **Enrollments** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
+| **Subjects** | ✅ Auth | ✅ Auth | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
+| **Recommendations** | ✅ Auth + RLS | ✅ Auth + RLS | ✅ Auth | ❌ No | ✅ Own |
+
+- 🔑 **TEACHER**: Only teachers can access
+- ✅ **Auth**: Any authenticated user
+- ✅ **Own**: Users can only access/modify their own data
+- **+RLS**: Row Level Security policies enforce data filtering
 
 ### Production Checklist
-- [ ] **Enable HTTPS**: Use TLS/SSL certificates
-- [ ] **Implement Authentication**: Integrate Supabase Auth JWT validation
-- [ ] **Enable RLS**: Row Level Security on database
-- [ ] **Secure Secrets**: Use secrets manager (AWS Secrets Manager, HashiCorp Vault)
-- [ ] **Input Sanitization**: Already implemented via Bean Validation
-- [ ] **SQL Injection Protection**: JPA/Hibernate provides protection
-- [ ] **CORS Configuration**: Configure allowed origins
-- [ ] **Rate Limiting**: Implement API rate limiting
-- [ ] **Monitoring**: Set up application monitoring
-- [ ] **Regular Updates**: Keep dependencies up-to-date
-- [ ] **Backup Strategy**: Regular database backups
-- [ ] **Audit Logging**: Log security events
 
-### Recommended Security Headers
-```java
-// Add to SecurityConfig when implementing authentication
-http.headers()
-    .contentSecurityPolicy("default-src 'self'")
-    .and()
-    .frameOptions().deny()
-    .and()
-    .xssProtection().enable();
-```
+Before deploying to production:
+
+- [ ] **Enable HTTPS**: Use TLS/SSL certificates (Let's Encrypt, CloudFlare)
+- [ ] **Update Supabase Keys**: Use production keys (not local dev keys)
+- [ ] **Configure CORS**: Set `security.cors.allowed-origins` to production URL
+- [ ] **Secrets Management**: Move keys to environment variables or secrets manager
+- [ ] **Database Connection Pooling**: Configure connection pool size
+- [ ] **Rate Limiting**: Implement API rate limiting (Spring Cloud Gateway, Kong)
+- [ ] **Monitoring**: Set up APM (New Relic, Datadog, or Elastic APM)
+- [ ] **Logging**: Configure centralized logging (ELK Stack, CloudWatch)
+- [ ] **Backup Strategy**: Automated database backups (Supabase handles this)
+- [ ] **Security Headers**: Add HSTS, CSP, X-Frame-Options headers
+- [ ] **Dependency Updates**: Regularly update Spring Boot and dependencies
+- [ ] **Penetration Testing**: Security audit before launch
 
 ## 📚 Additional Documentation
 
-- **[API Migration Guide](API_MIGRATION_GUIDE.md)**: Migrating from v1.x
-- **[Refactoring Plan](REFACTORING_PLAN.md)**: Detailed refactoring documentation
-- **[Refactoring Summary](REFACTORING_SUMMARY.md)**: Summary of changes made
-- **[Quick Start Guide](QUICK_START.md)**: Quick setup instructions
+- **[🔐 Authentication Guide](AUTHENTICATION_GUIDE.md)**: Complete security setup and troubleshooting
+- **[🚀 Quick Start Guide](QUICK_START.md)**: Get up and running in 5 minutes
+- **[📬 Postman Guide](POSTMAN_GUIDE.md)**: API testing with Postman
+- **[🔄 API Migration Guide](API_MIGRATION_GUIDE.md)**: Migrating from v1.x
+- **[📝 Refactoring Plan](REFACTORING_PLAN.md)**: Detailed refactoring documentation
+- **[📊 Refactoring Summary](REFACTORING_SUMMARY.md)**: Summary of changes made
+- **[📖 Swagger Documentation](SWAGGER_DOCUMENTATION_REPORT.md)**: API documentation report
 
 ## 🤝 Contributing
 

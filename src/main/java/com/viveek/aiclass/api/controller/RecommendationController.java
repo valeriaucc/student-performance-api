@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +31,8 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
 
     @PostMapping
-    @Operation(summary = "Create a new recommendation", description = "Creates a new AI-generated recommendation")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Create a new recommendation", description = "Creates a new AI-generated recommendation (authenticated users)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Recommendation created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -44,7 +46,8 @@ public class RecommendationController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get recommendation by ID", description = "Retrieves a recommendation by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get recommendation by ID", description = "Retrieves a recommendation by its ID (authenticated users)")
     public ResponseEntity<ApiResponse<RecommendationResponse>> getRecommendationById(
             @Parameter(description = "Recommendation ID") @PathVariable UUID id) {
         RecommendationResponse recommendation = recommendationService.getRecommendationById(id);
@@ -52,7 +55,8 @@ public class RecommendationController {
     }
 
     @GetMapping
-    @Operation(summary = "Get recommendations", description = "Retrieves recommendations with optional filters")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get recommendations", description = "Retrieves recommendations with optional filters (authenticated users)")
     public ResponseEntity<ApiResponse<List<RecommendationResponse>>> getRecommendations(
             @Parameter(description = "Filter by recipient ID") @RequestParam(required = false) UUID recipientId,
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
@@ -74,7 +78,8 @@ public class RecommendationController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete recommendation", description = "Deletes a recommendation by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Delete recommendation", description = "Deletes a recommendation by its ID (authenticated users)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Recommendation deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Recommendation not found")

@@ -1,0 +1,674 @@
+{
+	"info": {
+		"_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
+		"name": "AIClass API v2.0 (With Auth)",
+		"description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://jrhpocpbeshnbnviehuq.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://jrhpocpbeshnbnviehuq.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://jrhpocpbeshnbnviehuq.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Signup (Supabase)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{supabase_anon_key}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+					"body": {
+						"mode": "raw",
+						"raw": "{\n  \"email\": \"teacher@test.com\",\n  \"password\": \"password123\",\n  \"data\": {\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"teacher\"\n  }\n}"
+					},
+						"url": {
+							"raw": "{{supabase_url}}/auth/v1/signup",
+							"host": [
+								"{{supabase_url}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"signup"
+							]
+						},
+						"description": "Create a new user in Supabase Auth. The JWT token will be returned in the response."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract and save the JWT token automatically",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.access_token) {",
+									"        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        console.log('✅ JWT token saved to collection variable');",
+									"        console.log('✅ User ID:', jsonData.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login (Supabase)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{supabase_anon_key}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"teacher@test.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{supabase_url}}/auth/v1/token?grant_type=password",
+							"host": [
+								"{{supabase_url}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"token"
+							],
+							"query": [
+								{
+									"key": "grant_type",
+									"value": "password"
+								}
+							]
+						},
+						"description": "Login with existing user credentials to get a JWT token."
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract and save the JWT token automatically",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.access_token) {",
+									"        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        console.log('✅ JWT token saved to collection variable');",
+									"        console.log('✅ User ID:', jsonData.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "👤 Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Get all users in the system (teachers and students). Requires TEACHER role."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Get a specific user by UUID. Requires TEACHER role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"authUserId\": \"{{user_id}}\",\n  \"fullName\": \"Dr. John Smith\",\n  \"email\": \"john.smith@university.edu\",\n  \"role\": \"teacher\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 305\",\n    \"phone\": \"+1-555-0123\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create user profile. Requires authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📚 Subjects",
+			"item": [
+				{
+					"name": "Get All Subjects",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects"
+							]
+						},
+						"description": "Get all subjects. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subject",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"description\": \"Fundamental concepts of computer science\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"subjects"
+							]
+						},
+						"description": "Create a new subject. Requires TEACHER role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏫 Classes",
+			"item": [
+				{
+					"name": "Get All Classes",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						},
+						"description": "Get all classes. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Class",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subjectId\": \"{{subject_id}}\",\n  \"teacherId\": \"{{user_id}}\",\n  \"year\": 2025,\n  \"semester\": \"SPRING\",\n  \"groupCode\": \"A\",\n  \"schedule\": \"Mon/Wed/Fri 10:00-11:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 201\",\n    \"capacity\": 30\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						},
+						"description": "Create a new class. Requires TEACHER role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🎓 Enrollments",
+			"item": [
+				{
+					"name": "Get All Enrollments",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/enrollments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							]
+						},
+						"description": "Get all enrollments. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Enrollment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"enrollmentStatus\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/enrollments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"enrollments"
+							]
+						},
+						"description": "Enroll a student in a class. Requires TEACHER role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📝 Grades",
+			"item": [
+				{
+					"name": "Get All Grades",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							]
+						},
+						"description": "Get all grades. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Grade",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"exam\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							]
+						},
+						"description": "Create a new grade. Requires TEACHER role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🤖 AI Recommendations",
+			"item": [
+				{
+					"name": "Get All Recommendations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/recommendations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							]
+						},
+						"description": "Get all AI recommendations. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Recommendation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipientId\": \"{{user_id}}\",\n  \"classId\": \"{{class_id}}\",\n  \"audience\": \"student\",\n  \"message\": \"Your performance has been excellent. Keep up the good work!\",\n  \"metadata\": {\n    \"confidence\": 0.95,\n    \"category\": \"encouragement\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/recommendations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"recommendations"
+							]
+						},
+						"description": "Create a new AI recommendation. Requires TEACHER role."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "subject_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "class_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "enrollment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "grade_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "recommendation_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "supabase_url",
+			"value": "https://jrhpocpbeshnbnviehuq.supabase.co",
+			"type": "string"
+		},
+		{
+			"key": "supabase_anon_key",
+			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U",
+			"type": "string"
+		}
+	]
+}
+

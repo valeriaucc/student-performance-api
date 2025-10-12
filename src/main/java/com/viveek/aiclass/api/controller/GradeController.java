@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +31,8 @@ public class GradeController {
     private final GradeService gradeService;
 
     @PostMapping
-    @Operation(summary = "Create a new grade", description = "Creates a new grade for a student")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Create a new grade", description = "Creates a new grade for a student (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Grade created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -44,7 +46,8 @@ public class GradeController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update grade", description = "Updates an existing grade")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Update grade", description = "Updates an existing grade (TEACHER only)")
     public ResponseEntity<ApiResponse<GradeResponse>> updateGrade(
             @Parameter(description = "Grade ID") @PathVariable UUID id,
             @Valid @RequestBody UpdateGradeRequest request) {
@@ -53,7 +56,8 @@ public class GradeController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get grade by ID", description = "Retrieves a grade by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get grade by ID", description = "Retrieves a grade by its ID (authenticated users)")
     public ResponseEntity<ApiResponse<GradeResponse>> getGradeById(
             @Parameter(description = "Grade ID") @PathVariable UUID id) {
         GradeResponse grade = gradeService.getGradeById(id);
@@ -61,7 +65,8 @@ public class GradeController {
     }
 
     @GetMapping
-    @Operation(summary = "Get grades", description = "Retrieves grades with optional filters")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get grades", description = "Retrieves grades with optional filters (authenticated users)")
     public ResponseEntity<ApiResponse<List<GradeResponse>>> getGrades(
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
             @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId) {
@@ -82,7 +87,8 @@ public class GradeController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete grade", description = "Deletes a grade by its ID")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Delete grade", description = "Deletes a grade by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Grade deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Grade not found")

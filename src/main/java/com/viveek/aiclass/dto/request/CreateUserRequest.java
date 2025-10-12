@@ -36,7 +36,7 @@ public class CreateUserRequest {
     @Email(message = "Email must be valid")
     private String email;
 
-    @Schema(description = "User role", example = "STUDENT", required = true, allowableValues = {"TEACHER", "STUDENT"})
+    @Schema(description = "User role (lowercase)", example = "teacher", required = true, allowableValues = {"teacher", "student"})
     @NotNull(message = "Role is required")
     private UserRole role;
 

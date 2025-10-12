@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +32,8 @@ public class ClassController {
     private final ClassService classService;
 
     @PostMapping
-    @Operation(summary = "Create a new class", description = "Creates a new academic class")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Create a new class", description = "Creates a new academic class (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Class created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
@@ -45,7 +47,8 @@ public class ClassController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update class", description = "Updates an existing class")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Update class", description = "Updates an existing class (TEACHER only)")
     public ResponseEntity<ApiResponse<ClassResponse>> updateClass(
             @Parameter(description = "Class ID") @PathVariable UUID id,
             @Valid @RequestBody UpdateClassRequest request) {
@@ -54,7 +57,8 @@ public class ClassController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get class by ID", description = "Retrieves a class by its ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get class by ID", description = "Retrieves a class by its ID (authenticated users)")
     public ResponseEntity<ApiResponse<ClassResponse>> getClassById(
             @Parameter(description = "Class ID") @PathVariable UUID id) {
         ClassResponse classResponse = classService.getClassById(id);
@@ -62,7 +66,8 @@ public class ClassController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all classes", description = "Retrieves all classes with optional filters")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get all classes", description = "Retrieves all classes with optional filters (authenticated users)")
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses(
             @Parameter(description = "Filter by teacher ID") @RequestParam(required = false) UUID teacherId,
             @Parameter(description = "Filter by subject ID") @RequestParam(required = false) UUID subjectId,
@@ -84,7 +89,8 @@ public class ClassController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete class", description = "Deletes a class by its ID")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Delete class", description = "Deletes a class by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Class deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Class not found")

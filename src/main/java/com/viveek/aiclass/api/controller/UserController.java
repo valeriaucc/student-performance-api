@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,7 +46,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update user", description = "Updates an existing user")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Update user", description = "Updates an existing user (users can update their own profile)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User updated successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
@@ -58,7 +60,8 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get user by ID", description = "Retrieves a user by their ID")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Get user by ID", description = "Retrieves a user by their ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User found"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
@@ -70,7 +73,8 @@ public class UserController {
     }
 
     @GetMapping("/auth/{authUserId}")
-    @Operation(summary = "Get user by auth user ID", description = "Retrieves a user by their Supabase auth user ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get user by auth user ID", description = "Retrieves a user by their Supabase auth user ID (own profile)")
     public ResponseEntity<ApiResponse<UserResponse>> getUserByAuthUserId(
             @Parameter(description = "Auth User ID") @PathVariable UUID authUserId) {
         UserResponse user = userService.getUserByAuthUserId(authUserId);
@@ -78,7 +82,8 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
-    @Operation(summary = "Get user by email", description = "Retrieves a user by their email address")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Get user by email", description = "Retrieves a user by their email address (TEACHER only)")
     public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(
             @Parameter(description = "User email") @PathVariable String email) {
         UserResponse user = userService.getUserByEmail(email);
@@ -86,7 +91,8 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all users", description = "Retrieves all users")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Get all users", description = "Retrieves all users (TEACHER only)")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers(
             @Parameter(description = "Filter by role") @RequestParam(required = false) UserRole role) {
         List<UserResponse> users = role != null ? 
@@ -96,7 +102,8 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete user", description = "Deletes a user by their ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Delete user", description = "Deletes a user by their ID (own profile)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "User deleted successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")

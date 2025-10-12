@@ -27,7 +27,7 @@ public class UpdateUserRequest {
     @Email(message = "Email must be valid")
     private String email;
 
-    @Schema(description = "User role", example = "TEACHER", allowableValues = {"TEACHER", "STUDENT"})
+    @Schema(description = "User role (lowercase)", example = "teacher", allowableValues = {"teacher", "student"})
     private UserRole role;
 
     @Schema(description = "Additional metadata", example = "{\"department\": \"Mathematics\"}")
