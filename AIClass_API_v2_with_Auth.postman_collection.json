@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
 		"name": "AIClass API v2.0 (With Auth)",
-		"description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://jrhpocpbeshnbnviehuq.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://jrhpocpbeshnbnviehuq.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://jrhpocpbeshnbnviehuq.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
+		"description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@test.com\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -660,14 +660,14 @@
 			"type": "string"
 		},
 		{
-			"key": "supabase_url",
-			"value": "https://jrhpocpbeshnbnviehuq.supabase.co",
-			"type": "string"
+		"key": "supabase_url",
+		"value": "https://YOUR_PROJECT_REF.supabase.co",
+		"type": "string"
 		},
 		{
-			"key": "supabase_anon_key",
-			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U",
-			"type": "string"
+		"key": "supabase_anon_key",
+		"value": "YOUR_SUPABASE_ANON_KEY",
+		"type": "string"
 		}
 	]
 }

@@ -212,8 +212,8 @@ Since you can't login directly from Swagger, you need to get a token first:
 
 **Using cURL:**
 ```bash
-curl -X POST 'https://jrhpocpbeshnbnviehuq.supabase.co/auth/v1/token?grant_type=password' \
-  -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U' \
+curl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \
+  -H 'apikey: YOUR_SUPABASE_ANON_KEY' \
   -H 'Content-Type: application/json' \
   -d '{
     "email": "teacher@test.com",
@@ -338,8 +338,8 @@ After confirming authentication is working:
 
 ## Quick Reference
 
-**Supabase Project URL**: `https://jrhpocpbeshnbnviehuq.supabase.co`  
-**Supabase Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U`  
+**Supabase Project URL**: `https://YOUR_PROJECT_REF.supabase.co`  
+**Supabase Anon Key**: `YOUR_SUPABASE_ANON_KEY`  
 **API Base URL**: `http://localhost:8080`  
 **Swagger UI**: `http://localhost:8080/swagger-ui/index.html`
 
