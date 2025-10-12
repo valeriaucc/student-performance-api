@@ -1,12 +1,14 @@
 #!/bin/bash
 
 # ============================================================================
-# Database Migration Runner
+# Database Migration Runner - TEMPLATE
 # ============================================================================
-# This script helps you run the authentication migrations on your Supabase
-# database with proper password handling.
+# This is a template file. Copy it to run-migrations.sh and update with your
+# actual Supabase credentials.
 #
-# Usage:
+# Setup:
+#   cp run-migrations.sh.template run-migrations.sh
+#   # Edit run-migrations.sh with your credentials
 #   chmod +x run-migrations.sh
 #   ./run-migrations.sh
 # ============================================================================
@@ -24,11 +26,12 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Database configuration
-DB_HOST="aws-1-us-east-2.pooler.supabase.com"
-DB_PORT="6543"  # Try direct connection port
+# TODO: Update these with your actual Supabase credentials from Dashboard
+DB_HOST="aws-0-us-east-0.pooler.supabase.com"  # Update region if needed
+DB_PORT="6543"  # Direct connection port (use 5432 for Session pooler)
 DB_NAME="postgres"
-DB_USER="postgres.fwipiimnkxxcksvvspri"
-DB_PASSWORD="ai is my passion"
+DB_USER="postgres.YOUR_PROJECT_REF"
+DB_PASSWORD="YOUR_DATABASE_PASSWORD"
 
 # URL encode the password (replace spaces with %20)
 DB_PASSWORD_ENCODED=$(echo "$DB_PASSWORD" | sed 's/ /%20/g')
@@ -53,7 +56,7 @@ else
     echo ""
     echo "Troubleshooting tips:"
     echo "1. Check if PostgreSQL client is installed: psql --version"
-    echo "2. Verify your password in application-local.properties"
+    echo "2. Verify your credentials match Supabase Dashboard"
     echo "3. Try using port 5432 instead of 6543"
     echo "4. Use Supabase SQL Editor as alternative (see instructions below)"
     echo ""
@@ -161,7 +164,7 @@ echo ""
 echo "Next steps:"
 echo "1. Update your application-local.properties with Supabase credentials"
 echo "2. Build your application: ./mvnw clean package -DskipTests"
-echo "3. Start your application: ./mvnw spring-boot:run"
-echo "4. Test authentication (see SETUP_INSTRUCTIONS.md)"
+echo "3. Start your application: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local"
+echo "4. Test authentication (see AUTH_TESTING_GUIDE.md)"
 echo ""
 

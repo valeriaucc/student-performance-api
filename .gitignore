@@ -71,9 +71,11 @@ application-dev.yml
 application-secrets.yml
 application-local.properties
 setup-env.sh
+run-migrations.sh
 
+# Keep template files (these have placeholders, not actual secrets)
 !application-local.properties.template
-!setup-env.sh.template
+!run-migrations.sh.template
 
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider

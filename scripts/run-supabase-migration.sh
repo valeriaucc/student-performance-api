@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # CONFIGURA ESTOS DATOS:
-SUPABASE_DB_HOST="db.fwip1mnkxxcksvvspri.supabase.co"
+# TODO: Update with your actual Supabase credentials
+SUPABASE_DB_HOST="db.YOUR_PROJECT_REF.supabase.co"
 SUPABASE_DB_PORT="5432"
 SUPABASE_DB_USER="postgres"
 SUPABASE_DB_NAME="postgres"
-SUPABASE_DB_PASSWORD="ai is my passion"
+SUPABASE_DB_PASSWORD="YOUR_DATABASE_PASSWORD"
 
 echo "🚀 Ejecutando migración a Supabase…"
 

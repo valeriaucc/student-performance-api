@@ -11,7 +11,7 @@ A modern, enterprise-grade REST API for academic management and student performa
 
 ### 1. Clone Repository
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/ethx42/student-performance-api.git
 cd student-performance-api
 ```
 
@@ -41,6 +41,17 @@ nano src/main/resources/application-local.properties
 Replace all `YOUR_*` placeholders with actual values from Supabase.
 
 ### 3. Run Database Migrations
+
+#### Option A: Using Migration Script (Recommended)
+```bash
+# Copy and configure the migration script
+cp run-migrations.sh.template run-migrations.sh
+nano run-migrations.sh  # Edit with your credentials
+chmod +x run-migrations.sh
+./run-migrations.sh
+```
+
+#### Option B: Manual psql
 ```bash
 # Apply authentication and RLS policies
 psql "postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-us-east-0.pooler.supabase.com:6543/postgres" \
@@ -51,7 +62,8 @@ psql "postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-us-east-0.poole
   -f supabase/migrations/20250111000001_auto_create_user_profile.sql
 ```
 
-**Alternative**: Run migrations directly in Supabase SQL Editor (copy-paste the SQL files).
+#### Option C: Supabase SQL Editor
+Run migrations directly in the Supabase Dashboard (copy-paste the SQL files).
 
 ### 4. Disable Email Confirmation (Development Only)
 In Supabase Dashboard → **Authentication** → **Providers** → **Email**:
@@ -254,8 +266,7 @@ java -jar target/aiclass-0.0.1-SNAPSHOT.jar
 
 - [🔐 Authentication Guide](AUTHENTICATION_GUIDE.md) - Complete auth setup, testing, and troubleshooting
 - [🧪 Testing Guide](AUTH_TESTING_GUIDE.md) - Postman and Swagger testing
-- [📮 Postman Guide](POSTMAN_GUIDE.md) - API testing with Postman
-- [🚀 Quick Start](QUICK_START.md) - Get running in 5 minutes
+- [📋 Quick Reference Card](SETUP_QUICKREF.md) - One-page setup cheat sheet
 
 ## 🔧 Troubleshooting
 
