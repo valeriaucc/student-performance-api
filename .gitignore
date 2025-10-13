@@ -64,14 +64,18 @@ build/
 # Maven Wrapper generated files (optional)
 /.mvn/wrapper/maven-wrapper.jar
 
-# Sensitive files that you don't want to upload
+# Sensitive configuration files with actual credentials
 application.yml
 application-local.yml
 application-dev.yml
 application-secrets.yml
-setup-env.sh
-# Removed - no longer needed
 application-local.properties
+setup-env.sh
+run-migrations.sh
+
+# Keep template files (these have placeholders, not actual secrets)
+!application-local.properties.template
+!run-migrations.sh.template
 
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
