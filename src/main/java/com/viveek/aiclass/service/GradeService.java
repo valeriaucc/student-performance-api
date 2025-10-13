@@ -6,11 +6,11 @@ import com.viveek.aiclass.dto.response.GradeResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Service interface for Grade operations.
+ * All list operations use pagination for better performance and consistency.
  */
 public interface GradeService {
 
@@ -20,15 +20,17 @@ public interface GradeService {
 
     GradeResponse getGradeById(UUID id);
 
-    List<GradeResponse> getGradesByClassId(UUID classId);
-
+    /**
+     * Get grades by class ID with pagination and authorization.
+     * Teachers must own the class, students cannot use this endpoint.
+     */
     Page<GradeResponse> getGradesByClassId(UUID classId, Pageable pageable);
 
-    List<GradeResponse> getGradesByStudentId(UUID studentId);
-
+    /**
+     * Get grades by student ID with pagination and authorization.
+     * Students can only view their own grades, teachers can view grades for students in their classes.
+     */
     Page<GradeResponse> getGradesByStudentId(UUID studentId, Pageable pageable);
-
-    List<GradeResponse> getGradesByClassAndStudent(UUID classId, UUID studentId);
 
     void deleteGrade(UUID id);
 }

@@ -16,11 +16,14 @@ import com.viveek.aiclass.dto.response.GradeResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +60,14 @@ public class GradeServiceImpl implements GradeService {
 
         Class classEntity = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", request.getClassId()));
+
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of this class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Grade creation denied: user {} is not the teacher of class {}", 
+                     currentUser.getUserId(), request.getClassId());
+            throw new AccessDeniedException("You can only create grades for students in your classes");
+        }
 
         User student = userRepository.findById(request.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", request.getStudentId()));
@@ -97,6 +108,14 @@ public class GradeServiceImpl implements GradeService {
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Grade", "id", id));
 
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of the class this grade belongs to
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!grade.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Grade update denied: user {} tried to update grade {} for class owned by teacher {}", 
+                     currentUser.getUserId(), id, grade.getClassEntity().getTeacher().getId());
+            throw new AccessDeniedException("You can only update grades for students in your classes");
+        }
+
         if (request.getAssessmentKind() != null) {
             grade.setAssessmentKind(request.getAssessmentKind());
         }
@@ -130,16 +149,27 @@ public class GradeServiceImpl implements GradeService {
     public GradeResponse getGradeById(UUID id) {
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Grade", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify access based on role
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isTeacher()) {
+            // Teachers can only view grades for their own classes
+            if (!grade.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Grade access denied: teacher {} tried to access grade {} for class owned by teacher {}", 
+                         currentUser.getUserId(), id, grade.getClassEntity().getTeacher().getId());
+                throw new AccessDeniedException("You can only view grades for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students can only view their own grades
+            if (!grade.getStudent().getId().equals(currentUser.getUserId())) {
+                log.warn("Grade access denied: student {} tried to access grade {} for student {}", 
+                         currentUser.getUserId(), id, grade.getStudent().getId());
+                throw new AccessDeniedException("You can only view your own grades");
+            }
+        }
+        
         return EntityMapper.toGradeResponse(grade);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<GradeResponse> getGradesByClassId(UUID classId) {
-        log.debug("Fetching grades by class: classId={} (non-paginated)", classId);
-        return gradeRepository.findByClassEntityId(classId).stream()
-                .map(EntityMapper::toGradeResponse)
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -147,17 +177,25 @@ public class GradeServiceImpl implements GradeService {
     public Page<GradeResponse> getGradesByClassId(UUID classId, Pageable pageable) {
         log.debug("Fetching grades by class with pagination: classId={}, page={}, size={}", 
                   classId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify the teacher owns this class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        Class classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+        
+        if (currentUser.isTeacher()) {
+            if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Grades access denied: teacher {} tried to access grades for class owned by teacher {}", 
+                         currentUser.getUserId(), classEntity.getTeacher().getId());
+                throw new AccessDeniedException("You can only view grades for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students cannot list all grades for a class, only their own
+            throw new AccessDeniedException("Students can only view their own grades");
+        }
+        
         return gradeRepository.findByClassEntityId(classId, pageable)
                 .map(EntityMapper::toGradeResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<GradeResponse> getGradesByStudentId(UUID studentId) {
-        log.debug("Fetching grades by student: studentId={} (non-paginated)", studentId);
-        return gradeRepository.findByStudentId(studentId).stream()
-                .map(EntityMapper::toGradeResponse)
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -165,25 +203,48 @@ public class GradeServiceImpl implements GradeService {
     public Page<GradeResponse> getGradesByStudentId(UUID studentId, Pageable pageable) {
         log.debug("Fetching grades by student with pagination: studentId={}, page={}, size={}", 
                   studentId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify access rights
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isStudent()) {
+            // Students can only view their own grades
+            if (!studentId.equals(currentUser.getUserId())) {
+                log.warn("Grades access denied: student {} tried to access grades for student {}", 
+                         currentUser.getUserId(), studentId);
+                throw new AccessDeniedException("You can only view your own grades");
+            }
+        } else if (currentUser.isTeacher()) {
+            // Teachers can view grades for students in their classes only
+            // Note: For better performance with pagination, consider creating a custom repository query
+            List<Grade> filteredGrades = gradeRepository.findByStudentId(studentId).stream()
+                    .filter(grade -> grade.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
+                    .toList();
+            List<GradeResponse> responses = filteredGrades.stream()
+                    .map(EntityMapper::toGradeResponse)
+                    .collect(Collectors.toList());
+            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+        }
+        
         return gradeRepository.findByStudentId(studentId, pageable)
                 .map(EntityMapper::toGradeResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<GradeResponse> getGradesByClassAndStudent(UUID classId, UUID studentId) {
-        return gradeRepository.findByClassAndStudent(classId, studentId).stream()
-                .map(EntityMapper::toGradeResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public void deleteGrade(UUID id) {
         log.info("Deleting grade: id={}", id);
-        if (!gradeRepository.existsById(id)) {
-            log.warn("Grade deletion failed: grade not found - id={}", id);
-            throw new ResourceNotFoundException("Grade", "id", id);
+        
+        Grade grade = gradeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Grade", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of the class this grade belongs to
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!grade.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Grade deletion denied: user {} tried to delete grade {} for class owned by teacher {}", 
+                     currentUser.getUserId(), id, grade.getClassEntity().getTeacher().getId());
+            throw new AccessDeniedException("You can only delete grades for students in your classes");
         }
+        
         gradeRepository.deleteById(id);
         log.debug("Grade deleted successfully: id={}", id);
     }

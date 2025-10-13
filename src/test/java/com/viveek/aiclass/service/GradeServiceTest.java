@@ -17,12 +17,16 @@ import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.GradeResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.impl.GradeServiceImpl;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -58,17 +62,24 @@ class GradeServiceTest {
     @InjectMocks
     private GradeServiceImpl gradeService;
 
+    private MockedStatic<SecurityContextHelper> securityContextHelperMock;
+    
     private Class testClass;
     private User testStudent;
+    private User testTeacher;
     private Enrollment testEnrollment;
     private Subject testSubject;
     private UUID classId;
     private UUID studentId;
+    private UUID teacherId;
+    private AuthenticatedUser authenticatedTeacher;
+    private AuthenticatedUser authenticatedStudent;
 
     @BeforeEach
     void setUp() {
         classId = UUID.randomUUID();
         studentId = UUID.randomUUID();
+        teacherId = UUID.randomUUID();
 
         testSubject = Subject.builder()
                 .name("Mathematics")
@@ -76,8 +87,18 @@ class GradeServiceTest {
                 .build();
         ReflectionTestUtils.setField(testSubject, "id", UUID.randomUUID());
 
+        // Create test teacher
+        testTeacher = User.builder()
+                .authUserId(UUID.randomUUID())
+                .role(UserRole.TEACHER)
+                .fullName("Jane Teacher")
+                .email("teacher@example.com")
+                .build();
+        ReflectionTestUtils.setField(testTeacher, "id", teacherId);
+
         testClass = Class.builder()
                 .subject(testSubject)
+                .teacher(testTeacher)
                 .groupCode("A1")
                 .build();
         ReflectionTestUtils.setField(testClass, "id", classId);
@@ -96,10 +117,41 @@ class GradeServiceTest {
                 .status(EnrollmentStatus.ACTIVE)
                 .build();
         ReflectionTestUtils.setField(testEnrollment, "id", UUID.randomUUID());
+
+        // Create authenticated users for tests
+        authenticatedTeacher = AuthenticatedUser.builder()
+                .userId(teacherId)
+                .authUserId(testTeacher.getAuthUserId())
+                .email(testTeacher.getEmail())
+                .fullName(testTeacher.getFullName())
+                .role(UserRole.TEACHER)
+                .build();
+
+        authenticatedStudent = AuthenticatedUser.builder()
+                .userId(studentId)
+                .authUserId(testStudent.getAuthUserId())
+                .email(testStudent.getEmail())
+                .fullName(testStudent.getFullName())
+                .role(UserRole.STUDENT)
+                .build();
+
+        // Mock SecurityContextHelper
+        securityContextHelperMock = mockStatic(SecurityContextHelper.class);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (securityContextHelperMock != null) {
+            securityContextHelperMock.close();
+        }
     }
 
     @Test
     void createGrade_WhenValidRequest_ShouldCreateGrade() {
+        // Mock authenticated teacher
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateGradeRequest request = CreateGradeRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -168,6 +220,9 @@ class GradeServiceTest {
 
     @Test
     void createGrade_WhenStudentNotFound_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateGradeRequest request = CreateGradeRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -186,6 +241,9 @@ class GradeServiceTest {
 
     @Test
     void createGrade_WhenStudentNotEnrolled_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateGradeRequest request = CreateGradeRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -207,6 +265,9 @@ class GradeServiceTest {
 
     @Test
     void createGrade_WhenEnrollmentNotActive_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         testEnrollment.setStatus(EnrollmentStatus.DROPPED);
         CreateGradeRequest request = CreateGradeRequest.builder()
                 .classId(classId)
@@ -229,6 +290,9 @@ class GradeServiceTest {
 
     @Test
     void updateGrade_WhenValidRequest_ShouldUpdateGrade() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID gradeId = UUID.randomUUID();
         Grade existingGrade = Grade.builder()
                 .classEntity(testClass)
@@ -254,8 +318,13 @@ class GradeServiceTest {
 
     @Test
     void updateGrade_WhenScoreExceedsMax_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID gradeId = UUID.randomUUID();
         Grade existingGrade = Grade.builder()
+                .classEntity(testClass)
+                .student(testStudent)
                 .score(new BigDecimal("80.0"))
                 .maxScore(new BigDecimal("100.0"))
                 .build();
@@ -274,6 +343,9 @@ class GradeServiceTest {
 
     @Test
     void getGradeById_WhenExists_ShouldReturnGrade() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID gradeId = UUID.randomUUID();
         Grade grade = Grade.builder()
                 .classEntity(testClass)
@@ -302,6 +374,9 @@ class GradeServiceTest {
 
     @Test
     void getGradesByClassId_WithPagination_ShouldReturnPagedGrades() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         Pageable pageable = PageRequest.of(0, 10);
         Grade grade = Grade.builder()
                 .classEntity(testClass)
@@ -312,6 +387,7 @@ class GradeServiceTest {
         ReflectionTestUtils.setField(grade, "id", UUID.randomUUID());
 
         Page<Grade> gradePage = new PageImpl<>(List.of(grade), pageable, 1);
+        when(classRepository.findById(classId)).thenReturn(Optional.of(testClass));
         when(gradeRepository.findByClassEntityId(classId, pageable)).thenReturn(gradePage);
 
         Page<GradeResponse> response = gradeService.getGradesByClassId(classId, pageable);
@@ -323,6 +399,9 @@ class GradeServiceTest {
 
     @Test
     void getGradesByStudentId_WithPagination_ShouldReturnPagedGrades() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedStudent);
+        
         Pageable pageable = PageRequest.of(0, 10);
         Grade grade = Grade.builder()
                 .classEntity(testClass)
@@ -343,8 +422,19 @@ class GradeServiceTest {
 
     @Test
     void deleteGrade_WhenExists_ShouldDeleteGrade() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID gradeId = UUID.randomUUID();
-        when(gradeRepository.existsById(gradeId)).thenReturn(true);
+        Grade grade = Grade.builder()
+                .classEntity(testClass)
+                .student(testStudent)
+                .score(new BigDecimal("85.0"))
+                .maxScore(new BigDecimal("100.0"))
+                .build();
+        ReflectionTestUtils.setField(grade, "id", gradeId);
+        
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade));
 
         gradeService.deleteGrade(gradeId);
 
@@ -354,7 +444,7 @@ class GradeServiceTest {
     @Test
     void deleteGrade_WhenNotFound_ShouldThrowException() {
         UUID gradeId = UUID.randomUUID();
-        when(gradeRepository.existsById(gradeId)).thenReturn(false);
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> gradeService.deleteGrade(gradeId));

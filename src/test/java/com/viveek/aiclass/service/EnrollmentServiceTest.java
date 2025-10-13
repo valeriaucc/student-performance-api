@@ -15,12 +15,16 @@ import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.impl.EnrollmentServiceImpl;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -51,16 +55,22 @@ class EnrollmentServiceTest {
     @InjectMocks
     private EnrollmentServiceImpl enrollmentService;
 
+    private MockedStatic<SecurityContextHelper> securityContextHelperMock;
+    
     private Class testClass;
     private User testStudent;
     private User testTeacher;
     private UUID classId;
     private UUID studentId;
+    private UUID teacherId;
+    private AuthenticatedUser authenticatedTeacher;
+    private AuthenticatedUser authenticatedStudent;
 
     @BeforeEach
     void setUp() {
         classId = UUID.randomUUID();
         studentId = UUID.randomUUID();
+        teacherId = UUID.randomUUID();
 
         Subject testSubject = Subject.builder()
                 .name("Mathematics")
@@ -74,7 +84,7 @@ class EnrollmentServiceTest {
                 .fullName("Jane Teacher")
                 .email("jane@example.com")
                 .build();
-        ReflectionTestUtils.setField(testTeacher, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(testTeacher, "id", teacherId);
 
         testClass = Class.builder()
                 .subject(testSubject)
@@ -90,10 +100,40 @@ class EnrollmentServiceTest {
                 .email("john@example.com")
                 .build();
         ReflectionTestUtils.setField(testStudent, "id", studentId);
+
+        // Create authenticated users for tests
+        authenticatedTeacher = AuthenticatedUser.builder()
+                .userId(teacherId)
+                .authUserId(testTeacher.getAuthUserId())
+                .email(testTeacher.getEmail())
+                .fullName(testTeacher.getFullName())
+                .role(UserRole.TEACHER)
+                .build();
+
+        authenticatedStudent = AuthenticatedUser.builder()
+                .userId(studentId)
+                .authUserId(testStudent.getAuthUserId())
+                .email(testStudent.getEmail())
+                .fullName(testStudent.getFullName())
+                .role(UserRole.STUDENT)
+                .build();
+
+        // Mock SecurityContextHelper
+        securityContextHelperMock = mockStatic(SecurityContextHelper.class);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (securityContextHelperMock != null) {
+            securityContextHelperMock.close();
+        }
     }
 
     @Test
     void enrollStudent_WhenValidRequest_ShouldEnrollStudent() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateEnrollmentRequest request = CreateEnrollmentRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -121,6 +161,9 @@ class EnrollmentServiceTest {
 
     @Test
     void enrollStudent_WhenUserIsNotStudent_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         User teacher = User.builder()
                 .authUserId(UUID.randomUUID())
                 .role(UserRole.TEACHER)
@@ -143,6 +186,9 @@ class EnrollmentServiceTest {
 
     @Test
     void enrollStudent_WhenDuplicateEnrollment_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateEnrollmentRequest request = CreateEnrollmentRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -181,6 +227,9 @@ class EnrollmentServiceTest {
 
     @Test
     void enrollStudent_WhenStudentNotFound_ShouldThrowException() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         CreateEnrollmentRequest request = CreateEnrollmentRequest.builder()
                 .classId(classId)
                 .studentId(studentId)
@@ -195,6 +244,9 @@ class EnrollmentServiceTest {
 
     @Test
     void updateEnrollment_WhenValid_ShouldUpdateStatus() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID enrollmentId = UUID.randomUUID();
         Enrollment enrollment = Enrollment.builder()
                 .classEntity(testClass)
@@ -218,6 +270,9 @@ class EnrollmentServiceTest {
 
     @Test
     void getEnrollmentById_WhenExists_ShouldReturnEnrollment() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID enrollmentId = UUID.randomUUID();
         Enrollment enrollment = Enrollment.builder()
                 .classEntity(testClass)
@@ -236,6 +291,9 @@ class EnrollmentServiceTest {
 
     @Test
     void getEnrollmentsByClassId_WithPagination_ShouldReturnPagedEnrollments() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         Pageable pageable = PageRequest.of(0, 10);
         Enrollment enrollment = Enrollment.builder()
                 .classEntity(testClass)
@@ -245,6 +303,7 @@ class EnrollmentServiceTest {
         ReflectionTestUtils.setField(enrollment, "id", UUID.randomUUID());
 
         Page<Enrollment> enrollmentPage = new PageImpl<>(List.of(enrollment), pageable, 1);
+        when(classRepository.findById(classId)).thenReturn(Optional.of(testClass));
         when(enrollmentRepository.findByClassEntityId(classId, pageable)).thenReturn(enrollmentPage);
 
         Page<EnrollmentResponse> response = enrollmentService.getEnrollmentsByClassId(classId, pageable);
@@ -255,6 +314,9 @@ class EnrollmentServiceTest {
 
     @Test
     void getEnrollmentsByStudentId_WithPagination_ShouldReturnPagedEnrollments() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedStudent);
+        
         Pageable pageable = PageRequest.of(0, 10);
         Enrollment enrollment = Enrollment.builder()
                 .classEntity(testClass)
@@ -295,8 +357,18 @@ class EnrollmentServiceTest {
 
     @Test
     void deleteEnrollment_WhenExists_ShouldDeleteEnrollment() {
+        securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
+                .thenReturn(authenticatedTeacher);
+        
         UUID enrollmentId = UUID.randomUUID();
-        when(enrollmentRepository.existsById(enrollmentId)).thenReturn(true);
+        Enrollment enrollment = Enrollment.builder()
+                .classEntity(testClass)
+                .student(testStudent)
+                .status(EnrollmentStatus.ACTIVE)
+                .build();
+        ReflectionTestUtils.setField(enrollment, "id", enrollmentId);
+        
+        when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.of(enrollment));
 
         enrollmentService.deleteEnrollment(enrollmentId);
 
@@ -306,7 +378,7 @@ class EnrollmentServiceTest {
     @Test
     void deleteEnrollment_WhenNotFound_ShouldThrowException() {
         UUID enrollmentId = UUID.randomUUID();
-        when(enrollmentRepository.existsById(enrollmentId)).thenReturn(false);
+        when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> enrollmentService.deleteEnrollment(enrollmentId));

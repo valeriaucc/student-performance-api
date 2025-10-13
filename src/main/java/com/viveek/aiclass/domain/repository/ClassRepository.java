@@ -36,5 +36,22 @@ public interface ClassRepository extends JpaRepository<Class, UUID> {
             @Param("year") Integer year,
             @Param("semester") Semester semester
     );
+
+    /**
+     * Find classes where a student is enrolled (with ACTIVE status).
+     * Used for student authorization - students should only see classes they're enrolled in.
+     */
+    @Query("SELECT c FROM Class c " +
+           "JOIN Enrollment e ON e.classEntity.id = c.id " +
+           "WHERE e.student.id = :studentId AND e.status = 'ACTIVE'")
+    List<Class> findClassesByStudentId(@Param("studentId") UUID studentId);
+
+    /**
+     * Find classes where a student is enrolled (with ACTIVE status) - paginated version.
+     */
+    @Query("SELECT c FROM Class c " +
+           "JOIN Enrollment e ON e.classEntity.id = c.id " +
+           "WHERE e.student.id = :studentId AND e.status = 'ACTIVE'")
+    Page<Class> findClassesByStudentId(@Param("studentId") UUID studentId, Pageable pageable);
 }
 
