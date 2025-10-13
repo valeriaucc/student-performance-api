@@ -2,6 +2,8 @@ package com.viveek.aiclass.domain.repository;
 
 import com.viveek.aiclass.domain.model.Enrollment;
 import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,9 +21,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
     List<Enrollment> findByClassEntityId(UUID classId);
 
+    Page<Enrollment> findByClassEntityId(UUID classId, Pageable pageable);
+
     List<Enrollment> findByStudentId(UUID studentId);
 
+    Page<Enrollment> findByStudentId(UUID studentId, Pageable pageable);
+
     List<Enrollment> findByStatus(EnrollmentStatus status);
+
+    Page<Enrollment> findByStatus(EnrollmentStatus status, Pageable pageable);
 
     @Query("SELECT e FROM Enrollment e WHERE e.classEntity.id = :classId AND e.student.id = :studentId")
     Optional<Enrollment> findByClassAndStudent(

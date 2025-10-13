@@ -1,9 +1,11 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.dto.request.CreateGradeRequest;
 import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
 import com.viveek.aiclass.dto.response.GradeResponse;
+import com.viveek.aiclass.dto.response.PageResponse;
 import com.viveek.aiclass.service.GradeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +13,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,7 +37,7 @@ public class GradeController {
     private final GradeService gradeService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Create a new grade", description = "Creates a new grade for a student (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Grade created successfully"),
@@ -46,7 +52,7 @@ public class GradeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Update grade", description = "Updates an existing grade (TEACHER only)")
     public ResponseEntity<ApiResponse<GradeResponse>> updateGrade(
             @Parameter(description = "Grade ID") @PathVariable UUID id,
@@ -66,28 +72,30 @@ public class GradeController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get grades", description = "Retrieves grades with optional filters (authenticated users)")
-    public ResponseEntity<ApiResponse<List<GradeResponse>>> getGrades(
+    @Operation(summary = "Get grades with pagination", description = "Retrieves grades with optional filters and pagination (authenticated users)")
+    public ResponseEntity<ApiResponse<PageResponse<GradeResponse>>> getGrades(
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId) {
+            @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId,
+            @PageableDefault(size = 20, sort = "gradedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
-        List<GradeResponse> grades;
+        Page<GradeResponse> grades;
         if (classId != null && studentId != null) {
-            grades = gradeService.getGradesByClassAndStudent(classId, studentId);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Please provide only one filter parameter (classId or studentId, not both)"));
         } else if (classId != null) {
-            grades = gradeService.getGradesByClassId(classId);
+            grades = gradeService.getGradesByClassId(classId, pageable);
         } else if (studentId != null) {
-            grades = gradeService.getGradesByStudentId(studentId);
+            grades = gradeService.getGradesByStudentId(studentId, pageable);
         } else {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Please provide at least one filter parameter (classId or studentId)"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success(grades));
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(grades)));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Delete grade", description = "Deletes a grade by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Grade deleted successfully"),

@@ -3,6 +3,7 @@ package com.viveek.aiclass.api.controller;
 import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
 import com.viveek.aiclass.dto.request.CreateRecommendationRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
+import com.viveek.aiclass.dto.response.PageResponse;
 import com.viveek.aiclass.dto.response.RecommendationResponse;
 import com.viveek.aiclass.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -56,25 +61,26 @@ public class RecommendationController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get recommendations", description = "Retrieves recommendations with optional filters (authenticated users)")
-    public ResponseEntity<ApiResponse<List<RecommendationResponse>>> getRecommendations(
+    @Operation(summary = "Get recommendations with pagination", description = "Retrieves recommendations with optional filters and pagination (authenticated users)")
+    public ResponseEntity<ApiResponse<PageResponse<RecommendationResponse>>> getRecommendations(
             @Parameter(description = "Filter by recipient ID") @RequestParam(required = false) UUID recipientId,
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by audience") @RequestParam(required = false) RecommendationAudience audience) {
+            @Parameter(description = "Filter by audience") @RequestParam(required = false) RecommendationAudience audience,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
-        List<RecommendationResponse> recommendations;
+        Page<RecommendationResponse> recommendations;
         if (recipientId != null) {
-            recommendations = recommendationService.getRecommendationsByRecipientId(recipientId);
+            recommendations = recommendationService.getRecommendationsByRecipientId(recipientId, pageable);
         } else if (classId != null) {
-            recommendations = recommendationService.getRecommendationsByClassId(classId);
+            recommendations = recommendationService.getRecommendationsByClassId(classId, pageable);
         } else if (audience != null) {
-            recommendations = recommendationService.getRecommendationsByAudience(audience);
+            recommendations = recommendationService.getRecommendationsByAudience(audience, pageable);
         } else {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Please provide at least one filter parameter"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success(recommendations));
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(recommendations)));
     }
 
     @DeleteMapping("/{id}")
