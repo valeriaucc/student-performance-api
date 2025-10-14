@@ -74,11 +74,24 @@ public class EnrollmentController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get enrollments with pagination", description = "Retrieves enrollments with optional filters and pagination (authenticated users)")
+    @Operation(
+        summary = "Get enrollments with pagination", 
+        description = "Retrieves enrollments with filters and pagination (authenticated users). " +
+                      "⚠️ At least ONE filter parameter is REQUIRED: classId, studentId, or status. " +
+                      "Use page and size parameters for pagination (default: page=0, size=20)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Enrollments retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request - At least one filter parameter is required"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getEnrollments(
-            @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId,
-            @Parameter(description = "Filter by status") @RequestParam(required = false) EnrollmentStatus status,
+            @Parameter(description = "Filter by class ID (at least one filter required)", example = "4689b828-0cdb-4333-a9c8-48dce64e2409") 
+            @RequestParam(required = false) UUID classId,
+            @Parameter(description = "Filter by student ID (at least one filter required)", example = "1bb9ce94-66b2-4431-8b2b-724d569e2f24") 
+            @RequestParam(required = false) UUID studentId,
+            @Parameter(description = "Filter by status: ACTIVE, DROPPED, or COMPLETED (at least one filter required)", example = "ACTIVE") 
+            @RequestParam(required = false) EnrollmentStatus status,
             @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
         Page<EnrollmentResponse> enrollments;

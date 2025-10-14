@@ -81,7 +81,16 @@ public class SubjectController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all subjects with pagination", description = "Retrieves all subjects with pagination (authenticated users)")
+    @Operation(
+        summary = "Get all subjects with pagination", 
+        description = "Retrieves all subjects with pagination (authenticated users). " +
+                      "No filters required - fetches all subjects sorted alphabetically by name. " +
+                      "Use page and size parameters for pagination (default: page=0, size=20, sort=name)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Subjects retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<SubjectResponse>>> getAllSubjects(
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         Page<SubjectResponse> subjects = subjectService.getAllSubjects(pageable);
