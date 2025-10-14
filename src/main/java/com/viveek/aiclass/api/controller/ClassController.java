@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.Semester;
 import com.viveek.aiclass.dto.request.CreateClassRequest;
@@ -30,7 +31,7 @@ import java.util.UUID;
  * REST controller for Class management operations.
  */
 @RestController
-@RequestMapping("/api/classes")
+@RequestMapping(ApiVersions.V1 + "/classes")
 @RequiredArgsConstructor
 @Tag(name = "Classes", description = "Class management APIs")
 public class ClassController {

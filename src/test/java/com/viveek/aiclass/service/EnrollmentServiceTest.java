@@ -13,8 +13,10 @@ import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateEnrollmentRequest;
 import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
+import com.viveek.aiclass.domain.model.Enrollment;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.mapper.EnrollmentMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.impl.EnrollmentServiceImpl;
@@ -51,6 +53,9 @@ class EnrollmentServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EnrollmentMapper enrollmentMapper;
 
     @InjectMocks
     private EnrollmentServiceImpl enrollmentService;
@@ -120,6 +125,17 @@ class EnrollmentServiceTest {
 
         // Mock SecurityContextHelper
         securityContextHelperMock = mockStatic(SecurityContextHelper.class);
+        
+        // Setup default mapper behavior (lenient since not all tests use it)
+        lenient().when(enrollmentMapper.toResponse(any(Enrollment.class))).thenAnswer(invocation -> {
+            Enrollment e = invocation.getArgument(0);
+            return EnrollmentResponse.builder()
+                    .id(e.getId())
+                    .classId(e.getClassEntity() != null ? e.getClassEntity().getId() : null)
+                    .studentId(e.getStudent() != null ? e.getStudent().getId() : null)
+                    .status(e.getStatus())
+                    .build();
+        });
     }
 
     @AfterEach

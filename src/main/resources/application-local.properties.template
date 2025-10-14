@@ -1,8 +1,19 @@
 # Local Development Configuration Template
 # Copy this file to application-local.properties and fill in your actual values
 # The application-local.properties file is git-ignored to keep your secrets safe
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file: cp application-local.properties.template application-local.properties
+# 2. Fill in your actual Supabase credentials (see comments below)
+# 3. Start the app: ./mvnw spring-boot:run -Dspring.profiles.active=local
+#
+# IMPORTANT: This file inherits ALL configuration from application.properties
+# Only override values that differ for your local environment (DB connection, secrets, etc.)
 
-# Database Configuration - Get from Supabase Dashboard > Project Settings > Database
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# Get from Supabase Dashboard > Project Settings > Database
 # Use Session Pooler for IPv4 networks (port 5432)
 # Note: URL-encode special characters in password (spaces = %20, etc.)
 spring.datasource.url=jdbc:postgresql://aws-0-us-east-0.pooler.supabase.com:5432/postgres?password=YOUR_PASSWORD_URL_ENCODED
@@ -10,8 +21,8 @@ spring.datasource.username=postgres.YOUR_PROJECT_REF
 spring.datasource.password=YOUR_DATABASE_PASSWORD
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-# HikariCP Connection Pool Configuration for Supabase
-# Optimized for Session Pooler (short-lived connections)
+# HikariCP Connection Pool - Optimized for Supabase Session Pooler
+# These override the defaults from application.properties for local development
 spring.datasource.hikari.maximum-pool-size=5
 spring.datasource.hikari.minimum-idle=1
 spring.datasource.hikari.connection-timeout=30000
@@ -20,25 +31,66 @@ spring.datasource.hikari.max-lifetime=600000
 spring.datasource.hikari.connection-test-query=SELECT 1
 spring.datasource.hikari.pool-name=HikariPool-Supabase
 
-# Hibernate Configuration
+# ============================================================================
+# HIBERNATE CONFIGURATION
+# ============================================================================
 # Using 'none' to avoid schema migration during startup (use manual migrations)
 spring.jpa.hibernate.ddl-auto=none
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 
-# Server Configuration
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
 server.port=8080
 
-# Supabase Configuration - Get from Supabase Dashboard > Project Settings > API
+# ============================================================================
+# SUPABASE CONFIGURATION
+# ============================================================================
+# Get from Supabase Dashboard > Project Settings > API
 supabase.jwt.secret=YOUR_JWT_SECRET_HERE
 supabase.url=https://YOUR_PROJECT_REF.supabase.co
 supabase.anon.key=YOUR_ANON_KEY_HERE
 supabase.service.role.key=YOUR_SERVICE_ROLE_KEY_HERE
 
-# CORS Configuration - Add your frontend URLs
+# ============================================================================
+# CORS CONFIGURATION
+# ============================================================================
+# Add your frontend URLs (comma-separated)
 security.cors.allowed-origins=http://localhost:3000,http://localhost:5173,http://localhost:4200
 
-# Logging - Enable security logging for debugging
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+# Enable security logging for debugging authentication issues
 logging.level.org.springframework.security=DEBUG
+
+# ============================================================================
+# PHASE 3 - MONITORING & OBSERVABILITY (Inherited from application.properties)
+# ============================================================================
+# The following are already configured in application.properties and available:
+# - Actuator endpoints: /actuator/health, /actuator/metrics, /actuator/prometheus
+# - Custom health checks: Database, Supabase Auth, Application status
+# - Prometheus metrics export
+# - Distributed tracing (Zipkin)
+# - Application info endpoint
+#
+# You can override any of these if needed for local development, but typically
+# you should just inherit the defaults from application.properties
+#
+# Example overrides (uncomment if needed):
+# management.endpoints.web.exposure.include=health,info,metrics,prometheus,env,loggers,threaddump
+# management.tracing.sampling.probability=1.0  # 100% sampling for local debugging
+
+# ============================================================================
+# NOTES FOR NEW DEVELOPERS
+# ============================================================================
+# - DO NOT commit application-local.properties to git (it's in .gitignore)
+# - Keep your secrets safe and never share them publicly
+# - This file inherits monitoring, metrics, and observability features from base config
+# - Run migrations: ./run-migrations.sh (see SETUP_QUICKREF.md)
+# - Access Swagger UI: http://localhost:8080/swagger-ui.html
+# - Check health: http://localhost:8080/actuator/health
+# - View metrics: http://localhost:8080/actuator/prometheus
 

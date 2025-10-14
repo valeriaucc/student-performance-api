@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.UserRole;
 import com.viveek.aiclass.dto.request.CreateUserRequest;
@@ -30,9 +31,9 @@ import java.util.UUID;
  * REST controller for User management operations.
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping(ApiVersions.V1 + "/users")
 @RequiredArgsConstructor
-@Tag(name = "Users", description = "User management APIs")
+@Tag(name = "Users", description = "User management APIs (v1)")
 public class UserController {
 
     private final UserService userService;

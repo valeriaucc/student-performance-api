@@ -1,98 +1,129 @@
 # AIClass API - Student Performance Management System
 
-A modern, enterprise-grade REST API for academic management and student performance analytics with **JWT authentication**, built with Spring Boot 3.5 and Supabase PostgreSQL.
+A modern REST API for academic management and student performance analytics built with **Spring Boot 3.5**, **Supabase PostgreSQL**, and **JWT authentication**.
+
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**Version**: 2.0.0 | **Phase**: Phase 3 - Maintainability & DevOps
+
+---
+
+## 🎉 What's New in v2.0
+
+- **API Versioning**: All endpoints use `/api/v1/*` for semantic versioning
+- **Monitoring**: Actuator endpoints with health checks and Prometheus metrics
+- **Performance**: MapStruct mapping, optimized queries, strategic database indexes
+- **Soft Delete**: Non-destructive deletion with automatic filtering
+- **Enhanced Security**: Rate limiting and improved JWT validation
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Java 21** (OpenJDK recommended)
-- **Maven 3.6+** (or use included wrapper `./mvnw`)
-- **Supabase Account** with PostgreSQL database
+- Java 21 or higher
+- Maven 3.6+ (or use included `./mvnw`)
+- Supabase account with PostgreSQL database
 
-### 1. Clone Repository
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/ethx42/student-performance-api.git
 cd student-performance-api
 ```
 
-### 2. Configure Database & Auth
+### Step 2: Configure Environment
 
-#### Get Your Supabase Credentials
+#### Get Supabase Credentials
 1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project
+2. Navigate to **Project Settings** → **Database**:
+   - Copy connection string (Session Pooler, port 5432)
 3. Navigate to **Project Settings** → **API**:
-   - Copy **URL** (e.g., `https://xxx.supabase.co`)
-   - Copy **anon/public key**
-   - Copy **service_role key**
-4. Navigate to **Project Settings** → **Database**:
-   - Copy **Connection string** (Session Pooler, port 5432)
-5. Navigate to **Project Settings** → **API** → scroll to **JWT Settings**:
-   - Copy **JWT Secret**
+   - Copy JWT Secret
+   - Copy Project URL
+   - Copy anon (public) key
+   - Copy service_role key
 
-#### Configure Application
+#### Setup Configuration File
 ```bash
-# Copy the template
-cp src/main/resources/application-local.properties.template src/main/resources/application-local.properties
+# Copy template
+cp src/main/resources/application-local.properties.template \
+   src/main/resources/application-local.properties
 
-# Edit and add your credentials
+# Edit with your credentials
 nano src/main/resources/application-local.properties
 ```
 
-Replace all `YOUR_*` placeholders with actual values from Supabase.
+**Replace these values:**
+```properties
+spring.datasource.url=jdbc:postgresql://YOUR_HOST:5432/postgres?password=YOUR_PASSWORD
+spring.datasource.username=postgres.YOUR_PROJECT_REF
+spring.datasource.password=YOUR_PASSWORD
 
-### 3. Run Database Migrations
+supabase.jwt.secret=YOUR_JWT_SECRET
+supabase.url=https://YOUR_PROJECT_REF.supabase.co
+supabase.anon.key=YOUR_ANON_KEY
+supabase.service.role.key=YOUR_SERVICE_ROLE_KEY
+```
 
-#### Option A: Using Migration Script (Recommended)
+**Note**: URL-encode special characters in password (spaces = `%20`)
+
+### Step 3: Run Database Migrations (only if you are running  a local DB)
 ```bash
-# Copy and configure the migration script
-cp run-migrations.sh.template run-migrations.sh
-nano run-migrations.sh  # Edit with your credentials
+# Option A: Using script
 chmod +x run-migrations.sh
 ./run-migrations.sh
+
+# Option B: Manual with psql
+psql "YOUR_CONNECTION_STRING" -f supabase/migrations/20250111000000_comprehensive_auth_and_rls.sql
+psql "YOUR_CONNECTION_STRING" -f supabase/migrations/20250111000001_auto_create_user_profile.sql
+psql "YOUR_CONNECTION_STRING" -f supabase/migrations/20250113010000_add_performance_indexes.sql
+psql "YOUR_CONNECTION_STRING" -f supabase/migrations/20250115000000_add_soft_delete_support.sql
 ```
 
-#### Option B: Manual psql
+### Step 4: Build & Test
 ```bash
-# Apply authentication and RLS policies
-psql "postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-us-east-0.pooler.supabase.com:6543/postgres" \
-  -f supabase/migrations/20250111000000_comprehensive_auth_and_rls.sql
+./mvnw clean install
+./mvnw test
 
-# Apply auto-profile creation trigger
-psql "postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-us-east-0.pooler.supabase.com:6543/postgres" \
-  -f supabase/migrations/20250111000001_auto_create_user_profile.sql
 ```
 
-#### Option C: Supabase SQL Editor
-Run migrations directly in the Supabase Dashboard (copy-paste the SQL files).
-
-### 4. Disable Email Confirmation (Development Only)
-In Supabase Dashboard → **Authentication** → **Providers** → **Email**:
-- Uncheck "Confirm email"
-
-### 5. Start the Application
+### Step 5: Start Application
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw spring-boot:run -Dspring.profiles.active=local
 ```
 
-### 6. Access the API
-- **API Base**: http://localhost:8080/api
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **OpenAPI Docs**: http://localhost:8080/v3/api-docs
+### Step 6: Verify Setup
+```bash
+# Check health
+curl http://localhost:8080/actuator/health
+# Expected: {"status":"UP"}
 
-## 🔐 Authentication & Authorization
+# Access Swagger UI
+open http://localhost:8080/swagger-ui.html
+```
 
-### How Authentication Works
-1. **User Signs Up** via Supabase Auth → Creates user in `auth.users` + triggers auto-creation in `public.users`
-2. **User Logs In** → Receives JWT token
-3. **API Requests** → Include `Authorization: Bearer <jwt-token>` header
-4. **Spring Security** validates JWT and enforces role-based access
+---
+
+## 🔐 Authentication
+
+### How It Works
+1. User signs up via Supabase Auth → Creates user in `auth.users` + auto-creates in `public.users`
+2. User logs in → Receives JWT token
+3. API requests include `Authorization: Bearer <token>` header
+4. Spring Security validates JWT and enforces role-based access
 
 ### Quick Test with Postman
 
-Import the collection: `AIClass_API_v2_with_Auth.postman_collection.json`
+**Import Collection**: `postman-collection/AIClass_API_v2_with_Auth.postman_collection.json`
 
-1. **Signup** (`POST {{supabase_url}}/auth/v1/signup`):
-```json
+#### 1. Signup
+```bash
+POST {{supabase_url}}/auth/v1/signup
+Content-Type: application/json
+apikey: {{supabase_anon_key}}
+
 {
   "email": "teacher@university.edu",
   "password": "password123",
@@ -103,228 +134,270 @@ Import the collection: `AIClass_API_v2_with_Auth.postman_collection.json`
 }
 ```
 
-2. **Login** (`POST {{supabase_url}}/auth/v1/token?grant_type=password`):
-```json
+#### 2. Login
+```bash
+POST {{supabase_url}}/auth/v1/token?grant_type=password
+Content-Type: application/json
+apikey: {{supabase_anon_key}}
+
 {
   "email": "teacher@university.edu",
   "password": "password123"
 }
 ```
-The collection auto-saves the JWT token.
 
-3. **Use API** - All requests automatically include the token.
+Copy the `access_token` from response.
 
-### Authorization Matrix
+#### 3. Use API
+```bash
+GET http://localhost:8080/api/v1/users
+Authorization: Bearer YOUR_JWT_TOKEN
+```
 
-| Resource | GET (List) | GET (Single) | POST | PUT/PATCH | DELETE |
-|----------|-----------|-------------|------|-----------|--------|
-| **Users** | 🔑 TEACHER | 🔑 TEACHER | ✅ Auth | ✅ Own | ✅ Own |
-| **Classes** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
-| **Grades** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
-| **Enrollments** | ✅ Auth + RLS | ✅ Auth + RLS | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
-| **Subjects** | ✅ Auth | ✅ Auth | 🔑 TEACHER | 🔑 TEACHER | 🔑 TEACHER |
-| **Recommendations** | ✅ Auth + RLS | ✅ Auth + RLS | ✅ Auth | ❌ No | ✅ Own |
+### Access Control
 
-- 🔑 **TEACHER**: Only teachers can access
-- ✅ **Auth**: Any authenticated user
-- ✅ **Own**: Users can only access/modify their own data
-- **+RLS**: Row Level Security policies enforce data filtering at database level
+| Resource | List | View | Create | Update | Delete |
+|----------|------|------|--------|--------|--------|
+| **Users** | Teacher | Teacher | Any Auth | Own | Own |
+| **Subjects** | Any Auth | Any Auth | Teacher | Teacher | Teacher |
+| **Classes** | Auth + RLS | Auth + RLS | Teacher | Teacher | Teacher |
+| **Enrollments** | Auth + RLS | Auth + RLS | Teacher | Teacher | Teacher |
+| **Grades** | Auth + RLS | Auth + RLS | Teacher | Teacher | Teacher |
+| **Recommendations** | Auth + RLS | Auth + RLS | Any Auth | - | Own |
 
-📖 **Detailed Guide**: [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)
+- **Teacher**: Only teachers allowed
+- **Any Auth**: Any authenticated user
+- **Own**: Users can only access their own data
+- **+RLS**: Row Level Security enforced at database level
+
+---
+
+## 📊 API Endpoints
+
+**Base URL**: `http://localhost:8080/api/v1`
+
+### Users
+```
+GET    /api/v1/users                    List users (paginated)
+POST   /api/v1/users                    Create user
+GET    /api/v1/users/{id}               Get user by ID
+GET    /api/v1/users/auth/{authId}      Get user by Supabase auth ID
+GET    /api/v1/users/email/{email}      Get user by email
+PUT    /api/v1/users/{id}               Update user
+DELETE /api/v1/users/{id}               Soft delete user
+```
+
+### Subjects
+```
+GET    /api/v1/subjects                 List subjects (paginated)
+POST   /api/v1/subjects                 Create subject
+GET    /api/v1/subjects/{id}            Get subject by ID
+GET    /api/v1/subjects/code/{code}     Get subject by code
+PUT    /api/v1/subjects/{id}            Update subject
+DELETE /api/v1/subjects/{id}            Soft delete subject
+```
+
+### Classes
+```
+GET    /api/v1/classes                  List classes (filtered, paginated)
+POST   /api/v1/classes                  Create class
+GET    /api/v1/classes/{id}             Get class by ID
+PUT    /api/v1/classes/{id}             Update class
+DELETE /api/v1/classes/{id}             Soft delete class
+```
+
+### Enrollments
+```
+GET    /api/v1/enrollments              List enrollments (filtered)
+POST   /api/v1/enrollments              Enroll student
+GET    /api/v1/enrollments/{id}         Get enrollment by ID
+PUT    /api/v1/enrollments/{id}         Update enrollment
+DELETE /api/v1/enrollments/{id}         Soft delete enrollment
+```
+
+### Grades
+```
+GET    /api/v1/grades                   List grades (filtered)
+POST   /api/v1/grades                   Create grade
+GET    /api/v1/grades/{id}              Get grade by ID
+PUT    /api/v1/grades/{id}              Update grade
+DELETE /api/v1/grades/{id}              Soft delete grade
+```
+
+### AI Recommendations
+```
+GET    /api/v1/recommendations          List recommendations (filtered)
+POST   /api/v1/recommendations          Create recommendation
+GET    /api/v1/recommendations/{id}     Get recommendation by ID
+DELETE /api/v1/recommendations/{id}     Soft delete recommendation
+```
+
+### Monitoring (Phase 3)
+```
+GET    /actuator/health                 Health status
+GET    /actuator/metrics                Available metrics
+GET    /actuator/prometheus             Prometheus metrics export
+GET    /actuator/info                   Application info
+```
+
+**Interactive Docs**: http://localhost:8080/swagger-ui.html
+
+---
 
 ## ✨ Key Features
 
-- **JWT Authentication** - Supabase Auth with HS256 token validation
-- **Role-Based Access Control (RBAC)** - `@PreAuthorize` method-level security
-- **Row Level Security (RLS)** - Database-level policies for data isolation
-- **User Management** - Teachers and students
-- **Subject Management** - Academic subjects/courses
-- **Class Management** - Class sections with teacher assignments
-- **Enrollment System** - Student enrollment with status tracking
-- **Grade Management** - Automatic percentage calculation
-- **AI Recommendations** - AI-generated recommendations
+- **JWT Authentication** - Supabase Auth with HS256 validation
+- **Role-Based Access** - Teacher and Student roles
+- **Row Level Security** - Database-level data isolation
+- **API Versioning** - `/api/v1/*` with deprecation strategy
+- **Soft Delete** - Non-destructive deletion
+- **Monitoring** - Health checks, metrics, Prometheus
 - **Clean Architecture** - Controller → Service → Repository
-- **UUID Primary Keys** - Globally unique identifiers
-- **JSONB Metadata** - Flexible extensibility
-- **Interactive API Docs** - Swagger/OpenAPI with auth support
-- **Global Exception Handling** - Consistent error responses
+- **Interactive Docs** - Swagger UI with auth support
 
-## 📚 API Endpoints
-
-### Base URL
-```
-http://localhost:8080/api
-```
-
-### Core Resources
-
-| Resource | Endpoints |
-|----------|-----------|
-| **Users** | `GET/POST /api/users`, `GET/PUT/DELETE /api/users/{id}`, `GET /api/users/auth/{authUserId}`, `GET /api/users/email/{email}` |
-| **Subjects** | `GET/POST /api/subjects`, `GET/PUT/DELETE /api/subjects/{id}`, `GET /api/subjects/code/{code}` |
-| **Classes** | `GET/POST /api/classes`, `GET/PUT/DELETE /api/classes/{id}` (filters: teacher, subject, year, semester) |
-| **Enrollments** | `GET/POST /api/enrollments`, `GET/PATCH/DELETE /api/enrollments/{id}` (filters: class, student, status) |
-| **Grades** | `GET/POST /api/grades`, `GET/PUT/DELETE /api/grades/{id}` (filters: class, student) |
-| **Recommendations** | `GET/POST /api/recommendations`, `GET/DELETE /api/recommendations/{id}` (filters: recipient, class, audience) |
-
-All responses follow the `ApiResponse<T>` wrapper pattern:
-```json
-{
-  "success": true,
-  "message": "Operation completed successfully",
-  "data": { /* your data */ },
-  "timestamp": "2025-10-11T10:00:00Z"
-}
-```
-
-**📖 Full API Documentation**: http://localhost:8080/swagger-ui.html
+---
 
 ## 🛠️ Technology Stack
 
-- **Java 21** - Latest LTS
-- **Spring Boot 3.5.5** - Framework
-- **Spring Security** - JWT authentication & RBAC
-- **Spring Data JPA** - Persistence
-- **PostgreSQL (Supabase)** - Database with RLS
-- **Lombok** - Boilerplate reduction
-- **MapStruct** - DTO mapping
-- **SpringDoc OpenAPI** - API docs
-- **Maven** - Build tool
+- Java 21
+- Spring Boot 3.5.5
+- Spring Security (JWT)
+- Spring Data JPA
+- PostgreSQL (Supabase)
+- MapStruct
+- Lombok
+- SpringDoc OpenAPI
+- Maven
+- JUnit 5 + Mockito
 
-## 🗄️ Data Model
+---
 
-### Core Entities
+## 🗄️ Database Schema
 
-- **User** (`users`) - Teachers and students with Supabase auth integration, role (TEACHER/STUDENT)
-- **Subject** (`subjects`) - Academic subjects with unique codes, credits
-- **Class** (`classes`) - Class sections with teacher, subject, schedule, year, semester
-- **Enrollment** (`enrollments`) - Student enrollments with status (ACTIVE/DROPPED/COMPLETED)
-- **Grade** (`grades`) - Student grades with automatic percentage calculation
-- **AI Recommendation** (`ai_recommendations`) - AI-generated recommendations by audience
+### Tables
+- **users** - Teachers and students
+- **subjects** - Academic subjects
+- **classes** - Class sections
+- **enrollments** - Student enrollments
+- **grades** - Student grades
+- **ai_recommendations** - AI-generated recommendations
 
-All entities use **UUID primary keys** and include **JSONB metadata** fields for extensibility.
+**Features**: UUID keys, audit timestamps (`created_at`, `updated_at`), soft delete (`deleted_at`), JSONB metadata, Row Level Security
 
-## 🏗️ Project Structure
+---
 
-```
-src/main/java/com/viveek/aiclass/
-├── api/controller/          # REST Controllers
-├── domain/
-│   ├── model/              # JPA Entities
-│   └── repository/         # JPA Repositories
-├── dto/
-│   ├── request/            # Request DTOs
-│   └── response/           # Response DTOs (includes ApiResponse wrapper)
-├── service/                # Business logic
-│   └── impl/               # Service implementations
-├── security/               # JWT auth, converters, helpers
-├── exception/              # Custom exceptions & global handler
-├── mapper/                 # MapStruct mappers
-└── config/                 # Spring configuration (Security, Swagger, JPA)
+## 📦 Building
 
-src/main/resources/
-├── application.properties                    # Base config with placeholders
-└── application-local.properties.template     # Template for local dev
-
-supabase/migrations/
-├── 20250111000000_comprehensive_auth_and_rls.sql  # RLS policies
-└── 20250111000001_auto_create_user_profile.sql    # Auto-create profile trigger
+### Development
+```bash
+./mvnw spring-boot:run -Dspring.profiles.active=local
 ```
 
-## 📦 Building for Production
+### Testing
+```bash
+./mvnw test
+# Expected: Tests run: 54, Failures: 0, Errors: 0
+```
 
-### Build JAR
+### Production
 ```bash
 ./mvnw clean package -DskipTests
-```
-
-### Run Production
-```bash
-export DB_URL="jdbc:postgresql://..."
-export DB_USERNAME="postgres.xxx"
-export DB_PASSWORD="your-password"
-export HIBERNATE_DDL_AUTO="validate"
-export HIBERNATE_SHOW_SQL="false"
-
 java -jar target/aiclass-0.0.1-SNAPSHOT.jar
 ```
 
+---
+
+## 🚀 Deployment
+
+### Environment Variables
+```bash
+# Database
+DB_URL=jdbc:postgresql://host:port/database
+DB_USERNAME=postgres.xxx
+DB_PASSWORD=your-password
+
+# Supabase Auth
+SUPABASE_JWT_SECRET=your-jwt-secret
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Security
+ALLOWED_ORIGINS=https://your-frontend.com
+```
+
 ### Production Checklist
+- [ ] Use HTTPS/TLS
+- [ ] Set `spring.jpa.hibernate.ddl-auto=validate`
+- [ ] Disable SQL logging
+- [ ] Configure CORS for production
+- [ ] Use production Supabase keys
+- [ ] Set up monitoring dashboards
+- [ ] Enable database backups
+- [ ] Configure rate limiting
+- [ ] Set up log aggregation
 
-- [ ] Enable HTTPS with TLS/SSL
-- [ ] Use production Supabase keys (not dev keys)
-- [ ] Configure `security.cors.allowed-origins` for production domains
-- [ ] Set `spring.jpa.hibernate.ddl-auto=validate` or `none`
-- [ ] Disable SQL logging (`spring.jpa.show-sql=false`)
-- [ ] Move secrets to environment variables or secrets manager
-- [ ] Configure connection pool sizing
-- [ ] Enable RLS on all database tables
-- [ ] Set up monitoring (APM, logs)
-- [ ] Configure automated database backups
-
-## 📚 Additional Documentation
-
-- [🔐 Authentication Guide](AUTHENTICATION_GUIDE.md) - Complete auth setup, testing, and troubleshooting
-- [🧪 Testing Guide](AUTH_TESTING_GUIDE.md) - Postman and Swagger testing
-- [📋 Quick Reference Card](SETUP_QUICKREF.md) - One-page setup cheat sheet
+---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Database connection fails
+- Verify connection string (use Session Pooler, port 5432)
+- URL-encode special chars in password
+- Check Supabase project is active
 
-**Database connection fails**:
-- Verify connection string (use Session Pooler port 5432 for IPv4)
-- URL-encode special characters in password (spaces = `%20`)
-- Check firewall allows outbound to Supabase
-
-**JWT validation fails**:
-- Ensure `supabase.jwt.secret` matches your Supabase JWT Secret (not anon key!)
-- Verify token is not expired
+### JWT validation fails
+- Ensure `supabase.jwt.secret` matches your Supabase project
+- Get fresh token from Supabase Auth
 - Check token format: `Authorization: Bearer <token>`
 
-**401 Unauthorized after login**:
-- Confirm email in Supabase dashboard or disable email confirmation
-- Verify user exists in both `auth.users` and `public.users` tables
-- Check application logs for JWT decoding errors
+### 404 on `/api/*` endpoints
+- Update to `/api/v1/*` - old paths removed in v2.0
+- Import latest Postman collection
 
-**User creation fails with constraint error**:
-- Ensure role is lowercase (`"role": "teacher"` not `"role": "TEACHER"`)
-- Verify trigger `handle_new_user` exists and is enabled
+### Tests failing
+- Run `./mvnw clean install` first
+- Ensure H2 database is available
 
-**More help**: See [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)
+### Can't access Swagger UI
+- App should run on port 8080
+- Visit: http://localhost:8080/swagger-ui.html
+- Check logs for startup errors
+
+---
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow code conventions
+4. Write unit tests
+5. Update API documentation
+6. Commit changes (`git commit -m 'Add amazing feature'`)
+7. Push to branch (`git push origin feature/amazing-feature`)
+8. Open Pull Request
 
-### Guidelines
-- Follow clean architecture principles
-- Write unit tests for new features
-- Update API documentation
-- Follow Java coding conventions
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+---
 
-For issues or questions:
-1. Check [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) and other docs
-2. Search existing issues
-3. Open a new issue with:
-   - Spring Boot version
-   - Java version
-   - Database version
-   - Error messages and stack traces
-   - Steps to reproduce
+## 📈 Roadmap
+
+- [x] Phase 1: Core functionality
+- [x] Phase 2: Authentication & security
+- [x] Phase 3: Maintainability & DevOps
+- [ ] Phase 4: Advanced analytics
+- [ ] Phase 5: Real-time features
+- [ ] Phase 6: ML integration
 
 ---
 
 **Version**: 2.0.0  
 **Last Updated**: October 2025  
-**Status**: Active Development
+**Status**: ✅ Production Ready
+
+**Made with ❤️ by the AIClass Team**

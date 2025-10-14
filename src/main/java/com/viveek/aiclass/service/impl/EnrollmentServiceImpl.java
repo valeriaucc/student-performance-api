@@ -14,7 +14,7 @@ import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.EnrollmentMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.EnrollmentService;
@@ -43,6 +43,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final EnrollmentMapper enrollmentMapper;
 
     @Override
     public EnrollmentResponse enrollStudent(CreateEnrollmentRequest request) {
@@ -86,7 +87,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
         log.debug("Student enrolled successfully: enrollmentId={}, status={}", 
                   savedEnrollment.getId(), savedEnrollment.getStatus());
-        return EntityMapper.toEnrollmentResponse(savedEnrollment);
+        return enrollmentMapper.toResponse(savedEnrollment);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Enrollment updatedEnrollment = enrollmentRepository.save(enrollment);
         log.debug("Enrollment updated successfully: id={}, status={}", 
                   updatedEnrollment.getId(), updatedEnrollment.getStatus());
-        return EntityMapper.toEnrollmentResponse(updatedEnrollment);
+        return enrollmentMapper.toResponse(updatedEnrollment);
     }
 
     @Override
@@ -137,7 +138,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             }
         }
         
-        return EntityMapper.toEnrollmentResponse(enrollment);
+        return enrollmentMapper.toResponse(enrollment);
     }
 
     @Override
@@ -163,7 +164,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         }
         
         return enrollmentRepository.findByClassEntityId(classId, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override
@@ -187,11 +188,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     studentId, 
                     currentUser.getUserId(), 
                     pageable
-            ).map(EntityMapper::toEnrollmentResponse);
+            ).map(enrollmentMapper::toResponse);
         }
         
         return enrollmentRepository.findByStudentId(studentId, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override
@@ -200,7 +201,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         log.debug("Fetching enrollments by status with pagination: status={}, page={}, size={}", 
                   status, pageable.getPageNumber(), pageable.getPageSize());
         return enrollmentRepository.findByStatus(status, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override

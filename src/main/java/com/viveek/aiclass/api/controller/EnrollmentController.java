@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
 import com.viveek.aiclass.dto.request.CreateEnrollmentRequest;
@@ -30,7 +31,7 @@ import java.util.UUID;
  * REST controller for Enrollment management operations.
  */
 @RestController
-@RequestMapping("/api/enrollments")
+@RequestMapping(ApiVersions.V1 + "/enrollments")
 @RequiredArgsConstructor
 @Tag(name = "Enrollments", description = "Enrollment management APIs")
 public class EnrollmentController {

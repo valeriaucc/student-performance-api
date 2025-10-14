@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
-    "name": "AIClass API v2.0 (With Auth)",
-    "description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
+    "name": "AIClass API v2.0 (Phase 3 - With Versioning & Monitoring)",
+    "description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication, API Versioning, and Monitoring.\n\n## \ud83c\udf89 What's New in Phase 3\n\n### API Versioning\n- All endpoints now use `/api/v1/*` path prefix\n- Semantic versioning support for backward compatibility\n- Deprecation headers for future migrations\n\n### Monitoring & Observability\n- Spring Boot Actuator endpoints for health checks\n- Prometheus metrics integration\n- Custom business metrics (user creation, enrollment counts, etc.)\n- Distributed tracing support\n\n### Performance Improvements\n- MapStruct for efficient object mapping\n- Optimized database queries with proper indexes\n- Connection pooling and caching strategies\n\n### Soft Delete Support\n- Entities are soft-deleted (marked with deletedAt timestamp)\n- Automatically filtered from all queries\n- No breaking changes to API responses\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key\n\n## API Features\n\n### Role-Based Access Control\n- **TEACHER**: Full access to create/modify classes, grades, and view all data\n- **STUDENT**: View own enrollments, grades, and recommendations\n\n### Pagination\nMost list endpoints support pagination with `page` and `size` query parameters:\n- `page`: Page number (0-indexed)\n- `size`: Items per page (default: 20)\n\n### Soft Deletes\nDeleted entities are not permanently removed but marked as deleted. They won't appear in API responses.\n\n### Monitoring\nUse the \"\ud83d\udcca Monitoring & Health\" folder to check:\n- Application health status\n- Database connectivity\n- Prometheus metrics\n- Custom business metrics\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -182,6 +182,83 @@
       ]
     },
     {
+      "name": "\ud83d\udcca Monitoring & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "Get application health status including database and Supabase auth connectivity."
+          }
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/prometheus",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "actuator",
+                "prometheus"
+              ]
+            },
+            "description": "Get Prometheus-compatible metrics for monitoring."
+          }
+        },
+        {
+          "name": "Application Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/info",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "actuator",
+                "info"
+              ]
+            },
+            "description": "Get application information including version and build details."
+          }
+        },
+        {
+          "name": "Application Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "actuator",
+                "metrics"
+              ]
+            },
+            "description": "Get list of available application metrics."
+          }
+        }
+      ]
+    },
+    {
       "name": "\ud83d\udc64 Users",
       "item": [
         {
@@ -200,12 +277,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/users",
+              "raw": "{{base_url}}/api/v1/users",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users"
               ]
             },
@@ -229,12 +307,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users",
                 "{{user_id}}"
               ]
@@ -259,12 +338,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/users/auth/{{auth_user_id}}",
+              "raw": "{{base_url}}/api/v1/users/auth/{{auth_user_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users",
                 "auth",
                 "{{auth_user_id}}"
@@ -290,12 +370,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/users/email/teacher@university.edu",
+              "raw": "{{base_url}}/api/v1/users/email/teacher@university.edu",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users",
                 "email",
                 "teacher@university.edu"
@@ -330,12 +411,13 @@
               "raw": "{\n  \"authUserId\": \"{{auth_user_id}}\",\n  \"fullName\": \"Dr. John Smith\",\n  \"email\": \"john.smith@university.edu\",\n  \"role\": \"TEACHER\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 305\",\n    \"phone\": \"+1-555-0123\"\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/users",
+              "raw": "{{base_url}}/api/v1/users",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users"
               ]
             },
@@ -368,12 +450,13 @@
               "raw": "{\n  \"fullName\": \"Dr. John Smith Updated\",\n  \"email\": \"john.updated@university.edu\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 306\",\n    \"phone\": \"+1-555-0124\"\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users",
                 "{{user_id}}"
               ]
@@ -398,12 +481,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "users",
                 "{{user_id}}"
               ]
@@ -433,12 +517,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/subjects",
+              "raw": "{{base_url}}/api/v1/subjects",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects"
               ]
             },
@@ -462,12 +547,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects",
                 "{{subject_id}}"
               ]
@@ -492,12 +578,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/subjects/code/CS101",
+              "raw": "{{base_url}}/api/v1/subjects/code/CS101",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects",
                 "code",
                 "CS101"
@@ -532,12 +619,13 @@
               "raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"description\": \"Fundamental concepts of computer science\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/subjects",
+              "raw": "{{base_url}}/api/v1/subjects",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects"
               ]
             },
@@ -570,12 +658,13 @@
               "raw": "{\n  \"name\": \"Advanced Computer Science\",\n  \"description\": \"Updated description\",\n  \"credits\": 5,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects",
                 "{{subject_id}}"
               ]
@@ -600,12 +689,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "subjects",
                 "{{subject_id}}"
               ]
@@ -635,12 +725,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/classes?page=0&size=20",
+              "raw": "{{base_url}}/api/v1/classes?page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "classes"
               ],
               "query": [
@@ -700,12 +791,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "classes",
                 "{{class_id}}"
               ]
@@ -739,12 +831,13 @@
               "raw": "{\n  \"subjectId\": \"{{subject_id}}\",\n  \"teacherId\": \"{{user_id}}\",\n  \"year\": 2025,\n  \"semester\": \"SPRING\",\n  \"groupCode\": \"A\",\n  \"schedule\": \"Mon/Wed/Fri 10:00-11:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 201\",\n    \"capacity\": 30\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/classes",
+              "raw": "{{base_url}}/api/v1/classes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "classes"
               ]
             },
@@ -777,12 +870,13 @@
               "raw": "{\n  \"year\": 2025,\n  \"semester\": \"FALL\",\n  \"groupCode\": \"B\",\n  \"schedule\": \"Tue/Thu 14:00-15:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 202\",\n    \"capacity\": 35\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "classes",
                 "{{class_id}}"
               ]
@@ -807,12 +901,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "classes",
                 "{{class_id}}"
               ]
@@ -838,12 +933,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/enrollments?classId={{class_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/enrollments?classId={{class_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments"
               ],
               "query": [
@@ -879,12 +975,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/enrollments?studentId={{student_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/enrollments?studentId={{student_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments"
               ],
               "query": [
@@ -920,12 +1017,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/enrollments?status=ACTIVE&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/enrollments?status=ACTIVE&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments"
               ],
               "query": [
@@ -965,12 +1063,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments",
                 "{{enrollment_id}}"
               ]
@@ -1004,12 +1103,13 @@
               "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"enrollmentStatus\": \"ACTIVE\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/enrollments",
+              "raw": "{{base_url}}/api/v1/enrollments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments"
               ]
             },
@@ -1042,12 +1142,13 @@
               "raw": "{\n  \"enrollmentStatus\": \"DROPPED\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments",
                 "{{enrollment_id}}"
               ]
@@ -1072,12 +1173,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "enrollments",
                 "{{enrollment_id}}"
               ]
@@ -1103,12 +1205,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/grades?classId={{class_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/grades?classId={{class_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades"
               ],
               "query": [
@@ -1144,12 +1247,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/grades?studentId={{student_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/grades?studentId={{student_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades"
               ],
               "query": [
@@ -1189,12 +1293,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades",
                 "{{grade_id}}"
               ]
@@ -1228,12 +1333,13 @@
               "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/grades",
+              "raw": "{{base_url}}/api/v1/grades",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades"
               ]
             },
@@ -1266,12 +1372,13 @@
               "raw": "{\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam (Revised)\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-11T10:00:00Z\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades",
                 "{{grade_id}}"
               ]
@@ -1296,12 +1403,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "grades",
                 "{{grade_id}}"
               ]
@@ -1327,12 +1435,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/recommendations?recipientId={{user_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/recommendations?recipientId={{user_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations"
               ],
               "query": [
@@ -1368,12 +1477,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/recommendations?classId={{class_id}}&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/recommendations?classId={{class_id}}&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations"
               ],
               "query": [
@@ -1409,12 +1519,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/recommendations?audience=INDIVIDUAL&page=0&size=20",
+              "raw": "{{base_url}}/api/v1/recommendations?audience=INDIVIDUAL&page=0&size=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations"
               ],
               "query": [
@@ -1454,12 +1565,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+              "raw": "{{base_url}}/api/v1/recommendations/{{recommendation_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations",
                 "{{recommendation_id}}"
               ]
@@ -1493,12 +1605,13 @@
               "raw": "{\n  \"recipientId\": \"{{user_id}}\",\n  \"classId\": \"{{class_id}}\",\n  \"audience\": \"STUDENT\",\n  \"message\": \"Your performance has been excellent. Keep up the good work!\",\n  \"metadata\": {\n    \"confidence\": 0.95,\n    \"category\": \"encouragement\"\n  }\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/recommendations",
+              "raw": "{{base_url}}/api/v1/recommendations",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations"
               ]
             },
@@ -1522,12 +1635,13 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+              "raw": "{{base_url}}/api/v1/recommendations/{{recommendation_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
+                "v1",
                 "recommendations",
                 "{{recommendation_id}}"
               ]

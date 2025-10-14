@@ -15,6 +15,7 @@ import com.viveek.aiclass.dto.request.UpdateClassRequest;
 import com.viveek.aiclass.dto.response.ClassResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.mapper.ClassMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.impl.ClassServiceImpl;
@@ -55,6 +56,9 @@ class ClassServiceTest {
     @Mock
     private EnrollmentRepository enrollmentRepository;
 
+    @Mock
+    private ClassMapper classMapper;
+
     @InjectMocks
     private ClassServiceImpl classService;
 
@@ -66,6 +70,8 @@ class ClassServiceTest {
     private UUID subjectId;
     private UUID teacherId;
     private UUID studentId;
+    private UUID classId;
+    private ClassResponse testClassResponse;
     private AuthenticatedUser authenticatedTeacher;
     private AuthenticatedUser authenticatedStudent;
 
@@ -116,6 +122,20 @@ class ClassServiceTest {
 
         // Mock SecurityContextHelper
         securityContextHelperMock = mockStatic(SecurityContextHelper.class);
+        
+        // Setup test class response
+        classId = UUID.randomUUID();
+        testClassResponse = ClassResponse.builder()
+                .id(classId)
+                .subjectId(subjectId)
+                .subjectName(testSubject.getName())
+                .subjectCode(testSubject.getCode())
+                .teacherId(teacherId)
+                .teacherName(testTeacher.getFullName())
+                .year(2025)
+                .semester(Semester.SPRING)
+                .groupCode("A1")
+                .build();
     }
 
     @AfterEach
@@ -147,11 +167,13 @@ class ClassServiceTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(testSubject));
         when(userRepository.findById(teacherId)).thenReturn(Optional.of(testTeacher));
         when(classRepository.save(any(Class.class))).thenReturn(savedClass);
+        when(classMapper.toResponse(any(Class.class))).thenReturn(testClassResponse);
 
         ClassResponse response = classService.createClass(request);
 
         assertNotNull(response);
         verify(classRepository).save(any(Class.class));
+        verify(classMapper).toResponse(any(Class.class));
     }
 
     @Test
@@ -219,11 +241,13 @@ class ClassServiceTest {
 
         when(classRepository.findById(classId)).thenReturn(Optional.of(existingClass));
         when(classRepository.save(any(Class.class))).thenReturn(existingClass);
+        when(classMapper.toResponse(any(Class.class))).thenReturn(testClassResponse);
 
         ClassResponse response = classService.updateClass(classId, request);
 
         assertNotNull(response);
         verify(classRepository).save(existingClass);
+        verify(classMapper).toResponse(any(Class.class));
     }
 
     @Test
@@ -255,19 +279,30 @@ class ClassServiceTest {
         securityContextHelperMock.when(SecurityContextHelper::requireAuthentication)
                 .thenReturn(authenticatedTeacher);
         
-        UUID classId = UUID.randomUUID();
+        UUID localClassId = UUID.randomUUID();
         Class classEntity = Class.builder()
                 .subject(testSubject)
                 .teacher(testTeacher)
                 .build();
-        ReflectionTestUtils.setField(classEntity, "id", classId);
+        ReflectionTestUtils.setField(classEntity, "id", localClassId);
+        
+        ClassResponse expectedResponse = ClassResponse.builder()
+                .id(localClassId)
+                .subjectId(subjectId)
+                .subjectName(testSubject.getName())
+                .subjectCode(testSubject.getCode())
+                .teacherId(teacherId)
+                .teacherName(testTeacher.getFullName())
+                .build();
 
-        when(classRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(classRepository.findById(localClassId)).thenReturn(Optional.of(classEntity));
+        when(classMapper.toResponse(classEntity)).thenReturn(expectedResponse);
 
-        ClassResponse response = classService.getClassById(classId);
+        ClassResponse response = classService.getClassById(localClassId);
 
         assertNotNull(response);
-        assertEquals(classId, response.getId());
+        assertEquals(localClassId, response.getId());
+        verify(classMapper).toResponse(classEntity);
     }
 
     @Test
@@ -284,11 +319,13 @@ class ClassServiceTest {
 
         Page<Class> classPage = new PageImpl<>(List.of(classEntity), pageable, 1);
         when(classRepository.findByTeacherId(teacherId, pageable)).thenReturn(classPage);
+        when(classMapper.toResponse(any(Class.class))).thenReturn(testClassResponse);
 
         Page<ClassResponse> response = classService.getAllClasses(pageable);
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
+        verify(classMapper).toResponse(any(Class.class));
     }
 
     @Test
@@ -302,11 +339,13 @@ class ClassServiceTest {
 
         Page<Class> classPage = new PageImpl<>(List.of(classEntity), pageable, 1);
         when(classRepository.findByTeacherId(teacherId, pageable)).thenReturn(classPage);
+        when(classMapper.toResponse(any(Class.class))).thenReturn(testClassResponse);
 
         Page<ClassResponse> response = classService.getClassesByTeacherId(teacherId, pageable);
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
+        verify(classMapper).toResponse(any(Class.class));
     }
 
     @Test

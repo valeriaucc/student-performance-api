@@ -11,7 +11,7 @@ import com.viveek.aiclass.dto.request.CreateRecommendationRequest;
 import com.viveek.aiclass.dto.response.RecommendationResponse;
 import com.viveek.aiclass.domain.repository.EnrollmentRepository;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.RecommendationMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.RecommendationService;
@@ -40,6 +40,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final RecommendationMapper recommendationMapper;
 
     @Override
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
@@ -70,7 +71,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         AiRecommendation savedRecommendation = recommendationRepository.save(recommendation);
         log.debug("Recommendation created successfully: id={}", savedRecommendation.getId());
-        return EntityMapper.toRecommendationResponse(savedRecommendation);
+        return recommendationMapper.toResponse(savedRecommendation);
     }
 
     @Override
@@ -98,7 +99,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             }
         }
         
-        return EntityMapper.toRecommendationResponse(recommendation);
+        return recommendationMapper.toResponse(recommendation);
     }
 
     @Override
@@ -122,11 +123,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                     recipientId,
                     currentUser.getUserId(),
                     pageable
-            ).map(EntityMapper::toRecommendationResponse);
+            ).map(recommendationMapper::toResponse);
         }
         
         return recommendationRepository.findByRecipientId(recipientId, pageable)
-                .map(EntityMapper::toRecommendationResponse);
+                .map(recommendationMapper::toResponse);
     }
 
     @Override
@@ -157,11 +158,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                     classId,
                     currentUser.getUserId(),
                     pageable
-            ).map(EntityMapper::toRecommendationResponse);
+            ).map(recommendationMapper::toResponse);
         }
         
         return recommendationRepository.findByClassEntityId(classId, pageable)
-                .map(EntityMapper::toRecommendationResponse);
+                .map(recommendationMapper::toResponse);
     }
 
     @Override
@@ -170,7 +171,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         log.debug("Fetching recommendations by audience with pagination: audience={}, page={}, size={}", 
                   audience, pageable.getPageNumber(), pageable.getPageSize());
         return recommendationRepository.findByAudience(audience, pageable)
-                .map(EntityMapper::toRecommendationResponse);
+                .map(recommendationMapper::toResponse);
     }
 
     @Override

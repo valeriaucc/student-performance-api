@@ -15,7 +15,7 @@ import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.GradeResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.GradeMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.GradeService;
@@ -45,6 +45,7 @@ public class GradeServiceImpl implements GradeService {
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final GradeMapper gradeMapper;
 
     @Override
     public GradeResponse createGrade(CreateGradeRequest request) {
@@ -98,7 +99,7 @@ public class GradeServiceImpl implements GradeService {
 
         Grade savedGrade = gradeRepository.save(grade);
         log.debug("Grade created successfully: id={}", savedGrade.getId());
-        return EntityMapper.toGradeResponse(savedGrade);
+        return gradeMapper.toResponse(savedGrade);
     }
 
     @Override
@@ -141,7 +142,7 @@ public class GradeServiceImpl implements GradeService {
 
         Grade updatedGrade = gradeRepository.save(grade);
         log.debug("Grade updated successfully: id={}", updatedGrade.getId());
-        return EntityMapper.toGradeResponse(updatedGrade);
+        return gradeMapper.toResponse(updatedGrade);
     }
 
     @Override
@@ -169,7 +170,7 @@ public class GradeServiceImpl implements GradeService {
             }
         }
         
-        return EntityMapper.toGradeResponse(grade);
+        return gradeMapper.toResponse(grade);
     }
 
     @Override
@@ -195,7 +196,7 @@ public class GradeServiceImpl implements GradeService {
         }
         
         return gradeRepository.findByClassEntityId(classId, pageable)
-                .map(EntityMapper::toGradeResponse);
+                .map(gradeMapper::toResponse);
     }
 
     @Override
@@ -219,11 +220,11 @@ public class GradeServiceImpl implements GradeService {
                     studentId,
                     currentUser.getUserId(),
                     pageable
-            ).map(EntityMapper::toGradeResponse);
+            ).map(gradeMapper::toResponse);
         }
         
         return gradeRepository.findByStudentId(studentId, pageable)
-                .map(EntityMapper::toGradeResponse);
+                .map(gradeMapper::toResponse);
     }
 
     @Override
