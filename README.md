@@ -295,8 +295,18 @@ GET    /actuator/info                   Application info
 
 ### Testing
 ```bash
+# Run all tests
 ./mvnw test
-# Expected: Tests run: 54, Failures: 0, Errors: 0
+
+# Run tests with coverage report
+./mvnw clean test jacoco:report
+
+# View coverage report (after running above command)
+open target/site/jacoco/index.html
+
+# Run full build with tests and coverage checks
+./mvnw clean install
+# Note: Build will fail if coverage is below 50% threshold
 ```
 
 ### Production

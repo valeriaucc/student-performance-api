@@ -137,6 +137,13 @@
 		<artifactId>spring-security-oauth2-jose</artifactId>
 	</dependency>
 	
+	<!-- Spring Security Test -->
+	<dependency>
+		<groupId>org.springframework.security</groupId>
+		<artifactId>spring-security-test</artifactId>
+		<scope>test</scope>
+	</dependency>
+	
 	<!-- Validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -252,6 +259,14 @@
 											<minimum>0.50</minimum>
 										</limit>
 									</limits>
+									<excludes>
+										<!-- Exclude MapStruct generated mapper implementations -->
+										<exclude>com.viveek.aiclass.mapper</exclude>
+										<!-- Exclude REST controllers (require integration tests) -->
+										<exclude>com.viveek.aiclass.api.controller</exclude>
+										<!-- Exclude main application entry point -->
+										<exclude>com.viveek.aiclass</exclude>
+									</excludes>
 								</rule>
 							</rules>
 						</configuration>
