@@ -23,7 +23,10 @@ public class UpdateUserRequest {
     @Schema(description = "User's full name", example = "Jane Smith")
     private String fullName;
 
-    @Schema(description = "User's email address", example = "jane.smith@example.com")
+    @Schema(
+        description = "User's email address (will be normalized to lowercase and trimmed)", 
+        example = "jane.smith@example.com"
+    )
     @Email(message = "Email must be valid")
     private String email;
 

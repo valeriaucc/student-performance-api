@@ -3,6 +3,7 @@ package com.viveek.aiclass.security;
 import com.viveek.aiclass.domain.model.User;
 import com.viveek.aiclass.domain.model.enums.UserRole;
 import com.viveek.aiclass.domain.repository.UserRepository;
+import com.viveek.aiclass.util.EmailUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
@@ -55,17 +56,20 @@ public class SupabaseJwtAuthenticationConverter implements Converter<Jwt, Abstra
             throw new IllegalArgumentException("Invalid auth_user_id in JWT token", e);
         }
 
-        // Extract email from JWT claims
+        // Extract email from JWT claims and normalize it
         String email = jwt.getClaimAsString("email");
         if (email == null || email.isBlank()) {
             log.error("JWT token missing email claim for auth_user_id: {}", authUserId);
             throw new IllegalArgumentException("JWT token must contain email claim");
         }
+        
+        // Normalize email to lowercase and trim whitespace for consistency
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
 
         // Build the authenticated user with JWT claims
         AuthenticatedUser.AuthenticatedUserBuilder userBuilder = AuthenticatedUser.builder()
                 .authUserId(authUserId)
-                .email(email);
+                .email(normalizedEmail);
 
         // Try to fetch additional user information from database
         Optional<User> userOptional = userRepository.findByAuthUserId(authUserId);
@@ -77,9 +81,9 @@ public class SupabaseJwtAuthenticationConverter implements Converter<Jwt, Abstra
         } else {
             // User authenticated via Supabase but not yet in our database
             // Auto-create user profile from JWT claims
-            log.info("User authenticated but not found in database. Auto-creating profile for: {}", email);
-            user = createUserFromJwt(jwt, authUserId, email);
-            log.info("User profile auto-created: {} with role {}", email, user.getRole());
+            log.info("User authenticated but not found in database. Auto-creating profile for: {}", normalizedEmail);
+            user = createUserFromJwt(jwt, authUserId, normalizedEmail);
+            log.info("User profile auto-created: {} with role {}", normalizedEmail, user.getRole());
         }
         
         // Populate authenticated user from database user
@@ -106,10 +110,12 @@ public class SupabaseJwtAuthenticationConverter implements Converter<Jwt, Abstra
      * 
      * @param jwt the JWT token containing user claims
      * @param authUserId the Supabase Auth UUID
-     * @param email the user's email address
+     * @param email the user's email address (should already be normalized)
      * @return the newly created User entity
      */
     private User createUserFromJwt(Jwt jwt, UUID authUserId, String email) {
+        // Email should already be normalized by caller, but ensure it here as well
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
         // Extract user metadata from JWT
         Map<String, Object> userMetadata = jwt.getClaimAsMap("user_metadata");
         if (userMetadata == null) {
@@ -132,13 +138,13 @@ public class SupabaseJwtAuthenticationConverter implements Converter<Jwt, Abstra
         String fullName = (String) userMetadata.get("full_name");
         if (fullName == null || fullName.isBlank()) {
             // Use email prefix as fallback
-            fullName = email.split("@")[0];
+            fullName = normalizedEmail.split("@")[0];
         }
         
-        // Create and save the user
+        // Create and save the user with normalized email
         User newUser = User.builder()
                 .authUserId(authUserId)
-                .email(email)
+                .email(normalizedEmail)
                 .fullName(fullName)
                 .role(role)
                 .metadata(new HashMap<>(userMetadata))

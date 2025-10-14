@@ -10,6 +10,7 @@ import com.viveek.aiclass.exception.ResourceAlreadyExistsException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EntityMapper;
 import com.viveek.aiclass.service.UserService;
+import com.viveek.aiclass.util.EmailUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,11 +35,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
-        log.info("Creating user with email={}, role={}", request.getEmail(), request.getRole());
+        // Normalize email to lowercase and trim whitespace
+        String normalizedEmail = EmailUtils.normalizeEmail(request.getEmail());
+        request.setEmail(normalizedEmail);
         
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("User creation failed: email already exists - {}", request.getEmail());
-            throw new ResourceAlreadyExistsException("User", "email", request.getEmail());
+        log.info("Creating user with email={}, role={}", normalizedEmail, request.getRole());
+        
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            log.warn("User creation failed: email already exists - {}", normalizedEmail);
+            throw new ResourceAlreadyExistsException("User", "email", normalizedEmail);
         }
 
         if (userRepository.existsByAuthUserId(request.getAuthUserId())) {
@@ -63,12 +68,15 @@ public class UserServiceImpl implements UserService {
             user.setFullName(request.getFullName());
         }
         if (request.getEmail() != null) {
-            if (!request.getEmail().equals(user.getEmail()) && 
-                userRepository.existsByEmail(request.getEmail())) {
-                log.warn("User update failed: email already exists - {}", request.getEmail());
-                throw new ResourceAlreadyExistsException("User", "email", request.getEmail());
+            // Normalize email to lowercase and trim whitespace
+            String normalizedEmail = EmailUtils.normalizeEmail(request.getEmail());
+            
+            if (!normalizedEmail.equals(user.getEmail()) && 
+                userRepository.existsByEmail(normalizedEmail)) {
+                log.warn("User update failed: email already exists - {}", normalizedEmail);
+                throw new ResourceAlreadyExistsException("User", "email", normalizedEmail);
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(normalizedEmail);
         }
         if (request.getRole() != null) {
             user.setRole(request.getRole());
@@ -101,8 +109,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", normalizedEmail));
         return EntityMapper.toUserResponse(user);
     }
 
@@ -155,7 +164,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        return userRepository.existsByEmail(normalizedEmail);
     }
 
     @Override
