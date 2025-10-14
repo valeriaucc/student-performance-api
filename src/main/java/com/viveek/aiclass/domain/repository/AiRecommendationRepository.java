@@ -2,6 +2,8 @@ package com.viveek.aiclass.domain.repository;
 
 import com.viveek.aiclass.domain.model.AiRecommendation;
 import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,9 +20,15 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
 
     List<AiRecommendation> findByRecipientId(UUID recipientId);
 
+    Page<AiRecommendation> findByRecipientId(UUID recipientId, Pageable pageable);
+
     List<AiRecommendation> findByClassEntityId(UUID classId);
 
+    Page<AiRecommendation> findByClassEntityId(UUID classId, Pageable pageable);
+
     List<AiRecommendation> findByAudience(RecommendationAudience audience);
+
+    Page<AiRecommendation> findByAudience(RecommendationAudience audience, Pageable pageable);
 
     @Query("SELECT r FROM AiRecommendation r WHERE r.classEntity.id = :classId AND r.audience = :audience")
     List<AiRecommendation> findByClassAndAudience(

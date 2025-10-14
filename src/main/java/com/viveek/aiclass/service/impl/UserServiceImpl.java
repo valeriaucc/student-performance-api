@@ -10,7 +10,11 @@ import com.viveek.aiclass.exception.ResourceAlreadyExistsException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EntityMapper;
 import com.viveek.aiclass.service.UserService;
+import com.viveek.aiclass.util.EmailUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +25,7 @@ import java.util.stream.Collectors;
 /**
  * Implementation of UserService.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,23 +35,32 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
-        // Validate email uniqueness
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResourceAlreadyExistsException("User", "email", request.getEmail());
+        // Normalize email to lowercase and trim whitespace
+        String normalizedEmail = EmailUtils.normalizeEmail(request.getEmail());
+        request.setEmail(normalizedEmail);
+        
+        log.info("Creating user with email={}, role={}", normalizedEmail, request.getRole());
+        
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            log.warn("User creation failed: email already exists - {}", normalizedEmail);
+            throw new ResourceAlreadyExistsException("User", "email", normalizedEmail);
         }
 
-        // Validate authUserId uniqueness
         if (userRepository.existsByAuthUserId(request.getAuthUserId())) {
+            log.warn("User creation failed: authUserId already exists - {}", request.getAuthUserId());
             throw new ResourceAlreadyExistsException("User", "authUserId", request.getAuthUserId());
         }
 
         User user = EntityMapper.toUser(request);
         User savedUser = userRepository.save(user);
+        log.debug("User created successfully: id={}, email={}", savedUser.getId(), savedUser.getEmail());
         return EntityMapper.toUserResponse(savedUser);
     }
 
     @Override
     public UserResponse updateUser(UUID id, UpdateUserRequest request) {
+        log.info("Updating user: id={}", id);
+        
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
@@ -54,12 +68,15 @@ public class UserServiceImpl implements UserService {
             user.setFullName(request.getFullName());
         }
         if (request.getEmail() != null) {
-            // Check if email is changing and if new email already exists
-            if (!request.getEmail().equals(user.getEmail()) && 
-                userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceAlreadyExistsException("User", "email", request.getEmail());
+            // Normalize email to lowercase and trim whitespace
+            String normalizedEmail = EmailUtils.normalizeEmail(request.getEmail());
+            
+            if (!normalizedEmail.equals(user.getEmail()) && 
+                userRepository.existsByEmail(normalizedEmail)) {
+                log.warn("User update failed: email already exists - {}", normalizedEmail);
+                throw new ResourceAlreadyExistsException("User", "email", normalizedEmail);
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(normalizedEmail);
         }
         if (request.getRole() != null) {
             user.setRole(request.getRole());
@@ -69,6 +86,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User updatedUser = userRepository.save(user);
+        log.debug("User updated successfully: id={}", updatedUser.getId());
         return EntityMapper.toUserResponse(updatedUser);
     }
 
@@ -91,14 +109,16 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", normalizedEmail));
         return EntityMapper.toUserResponse(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
+        log.debug("Fetching all users (non-paginated)");
         return userRepository.findAll().stream()
                 .map(EntityMapper::toUserResponse)
                 .collect(Collectors.toList());
@@ -106,24 +126,46 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        log.debug("Fetching users with pagination: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
+        return userRepository.findAll(pageable)
+                .map(EntityMapper::toUserResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getUsersByRole(UserRole role) {
+        log.debug("Fetching users by role: role={} (non-paginated)", role);
         return userRepository.findByRole(role).stream()
                 .map(EntityMapper::toUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> getUsersByRole(UserRole role, Pageable pageable) {
+        log.debug("Fetching users by role with pagination: role={}, page={}, size={}", 
+                  role, pageable.getPageNumber(), pageable.getPageSize());
+        return userRepository.findByRole(role, pageable)
+                .map(EntityMapper::toUserResponse);
+    }
+
+    @Override
     public void deleteUser(UUID id) {
+        log.info("Deleting user: id={}", id);
         if (!userRepository.existsById(id)) {
+            log.warn("User deletion failed: user not found - id={}", id);
             throw new ResourceNotFoundException("User", "id", id);
         }
         userRepository.deleteById(id);
+        log.debug("User deleted successfully: id={}", id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        return userRepository.existsByEmail(normalizedEmail);
     }
 
     @Override

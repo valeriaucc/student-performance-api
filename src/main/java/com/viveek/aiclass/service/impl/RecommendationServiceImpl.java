@@ -9,10 +9,17 @@ import com.viveek.aiclass.domain.repository.ClassRepository;
 import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateRecommendationRequest;
 import com.viveek.aiclass.dto.response.RecommendationResponse;
+import com.viveek.aiclass.domain.repository.EnrollmentRepository;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +30,7 @@ import java.util.stream.Collectors;
 /**
  * Implementation of RecommendationService.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,14 +39,24 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final AiRecommendationRepository recommendationRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Override
     public RecommendationResponse createRecommendation(CreateRecommendationRequest request) {
-        // Validate class exists
+        log.info("Creating recommendation for classId={}, recipientId={}, audience={}", 
+                 request.getClassId(), request.getRecipientId(), request.getAudience());
+        
         Class classEntity = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", request.getClassId()));
 
-        // Validate recipient exists
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of this class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Recommendation creation denied: user {} is not the teacher of class {}", 
+                     currentUser.getUserId(), request.getClassId());
+            throw new AccessDeniedException("You can only create recommendations for your classes");
+        }
+
         User recipient = userRepository.findById(request.getRecipientId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getRecipientId()));
 
@@ -51,6 +69,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .build();
 
         AiRecommendation savedRecommendation = recommendationRepository.save(recommendation);
+        log.debug("Recommendation created successfully: id={}", savedRecommendation.getId());
         return EntityMapper.toRecommendationResponse(savedRecommendation);
     }
 
@@ -59,39 +78,126 @@ public class RecommendationServiceImpl implements RecommendationService {
     public RecommendationResponse getRecommendationById(UUID id) {
         AiRecommendation recommendation = recommendationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify access based on role
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isTeacher()) {
+            // Teachers can only view recommendations for their own classes
+            if (!recommendation.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Recommendation access denied: teacher {} tried to access recommendation {} for class owned by teacher {}", 
+                         currentUser.getUserId(), id, recommendation.getClassEntity().getTeacher().getId());
+                throw new AccessDeniedException("You can only view recommendations for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students can only view their own recommendations
+            if (!recommendation.getRecipient().getId().equals(currentUser.getUserId())) {
+                log.warn("Recommendation access denied: student {} tried to access recommendation {} for recipient {}", 
+                         currentUser.getUserId(), id, recommendation.getRecipient().getId());
+                throw new AccessDeniedException("You can only view your own recommendations");
+            }
+        }
+        
         return EntityMapper.toRecommendationResponse(recommendation);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecommendationResponse> getRecommendationsByRecipientId(UUID recipientId) {
-        return recommendationRepository.findByRecipientId(recipientId).stream()
-                .map(EntityMapper::toRecommendationResponse)
-                .collect(Collectors.toList());
+    public Page<RecommendationResponse> getRecommendationsByRecipientId(UUID recipientId, Pageable pageable) {
+        log.debug("Fetching recommendations by recipient with pagination: recipientId={}, page={}, size={}", 
+                  recipientId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify access rights
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isStudent()) {
+            // Students can only view their own recommendations
+            if (!recipientId.equals(currentUser.getUserId())) {
+                log.warn("Recommendations access denied: student {} tried to access recommendations for recipient {}", 
+                         currentUser.getUserId(), recipientId);
+                throw new AccessDeniedException("You can only view your own recommendations");
+            }
+        } else if (currentUser.isTeacher()) {
+            // Teachers can view recommendations for students in their classes only
+            // Note: For better performance with pagination, consider creating a custom repository query
+            List<AiRecommendation> filteredRecs = recommendationRepository.findByRecipientId(recipientId).stream()
+                    .filter(rec -> rec.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
+                    .toList();
+            List<RecommendationResponse> responses = filteredRecs.stream()
+                    .map(EntityMapper::toRecommendationResponse)
+                    .collect(Collectors.toList());
+            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+        }
+        
+        return recommendationRepository.findByRecipientId(recipientId, pageable)
+                .map(EntityMapper::toRecommendationResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecommendationResponse> getRecommendationsByClassId(UUID classId) {
-        return recommendationRepository.findByClassEntityId(classId).stream()
-                .map(EntityMapper::toRecommendationResponse)
-                .collect(Collectors.toList());
+    public Page<RecommendationResponse> getRecommendationsByClassId(UUID classId, Pageable pageable) {
+        log.debug("Fetching recommendations by class with pagination: classId={}, page={}, size={}", 
+                  classId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify the teacher owns this class or student is enrolled
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        Class classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+        
+        if (currentUser.isTeacher()) {
+            if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Recommendations access denied: teacher {} tried to access recommendations for class owned by teacher {}", 
+                         currentUser.getUserId(), classEntity.getTeacher().getId());
+                throw new AccessDeniedException("You can only view recommendations for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students can only view recommendations for classes they're enrolled in
+            if (!enrollmentRepository.isStudentEnrolledInClass(currentUser.getUserId(), classId)) {
+                log.warn("Recommendations access denied: student {} tried to access recommendations for class without enrollment", 
+                         currentUser.getUserId());
+                throw new AccessDeniedException("You can only view recommendations for classes you are enrolled in");
+            }
+            // Filter to only show recommendations for this student
+            // Note: For better performance with pagination, consider creating a custom repository query
+            List<AiRecommendation> filteredRecs = recommendationRepository.findByClassEntityId(classId).stream()
+                    .filter(rec -> rec.getRecipient().getId().equals(currentUser.getUserId()))
+                    .toList();
+            List<RecommendationResponse> responses = filteredRecs.stream()
+                    .map(EntityMapper::toRecommendationResponse)
+                    .collect(Collectors.toList());
+            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+        }
+        
+        return recommendationRepository.findByClassEntityId(classId, pageable)
+                .map(EntityMapper::toRecommendationResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecommendationResponse> getRecommendationsByAudience(RecommendationAudience audience) {
-        return recommendationRepository.findByAudience(audience).stream()
-                .map(EntityMapper::toRecommendationResponse)
-                .collect(Collectors.toList());
+    public Page<RecommendationResponse> getRecommendationsByAudience(RecommendationAudience audience, Pageable pageable) {
+        log.debug("Fetching recommendations by audience with pagination: audience={}, page={}, size={}", 
+                  audience, pageable.getPageNumber(), pageable.getPageSize());
+        return recommendationRepository.findByAudience(audience, pageable)
+                .map(EntityMapper::toRecommendationResponse);
     }
 
     @Override
     public void deleteRecommendation(UUID id) {
-        if (!recommendationRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Recommendation", "id", id);
+        log.info("Deleting recommendation: id={}", id);
+        
+        AiRecommendation recommendation = recommendationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of the class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!recommendation.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Recommendation deletion denied: user {} tried to delete recommendation {} for class owned by teacher {}", 
+                     currentUser.getUserId(), id, recommendation.getClassEntity().getTeacher().getId());
+            throw new AccessDeniedException("You can only delete recommendations for your classes");
         }
+        
         recommendationRepository.deleteById(id);
+        log.debug("Recommendation deleted successfully: id={}", id);
     }
 }
 

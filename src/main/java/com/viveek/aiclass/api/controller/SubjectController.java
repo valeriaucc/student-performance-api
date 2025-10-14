@@ -1,8 +1,10 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.dto.request.CreateSubjectRequest;
 import com.viveek.aiclass.dto.request.UpdateSubjectRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
+import com.viveek.aiclass.dto.response.PageResponse;
 import com.viveek.aiclass.dto.response.SubjectResponse;
 import com.viveek.aiclass.service.SubjectService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +13,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,7 +37,7 @@ public class SubjectController {
     private final SubjectService subjectService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Create a new subject", description = "Creates a new academic subject (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Subject created successfully"),
@@ -46,7 +52,7 @@ public class SubjectController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Update subject", description = "Updates an existing subject (TEACHER only)")
     public ResponseEntity<ApiResponse<SubjectResponse>> updateSubject(
             @Parameter(description = "Subject ID") @PathVariable UUID id,
@@ -75,14 +81,15 @@ public class SubjectController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all subjects", description = "Retrieves all subjects (authenticated users)")
-    public ResponseEntity<ApiResponse<List<SubjectResponse>>> getAllSubjects() {
-        List<SubjectResponse> subjects = subjectService.getAllSubjects();
-        return ResponseEntity.ok(ApiResponse.success(subjects));
+    @Operation(summary = "Get all subjects with pagination", description = "Retrieves all subjects with pagination (authenticated users)")
+    public ResponseEntity<ApiResponse<PageResponse<SubjectResponse>>> getAllSubjects(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        Page<SubjectResponse> subjects = subjectService.getAllSubjects(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(subjects)));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Delete subject", description = "Deletes a subject by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Subject deleted successfully"),

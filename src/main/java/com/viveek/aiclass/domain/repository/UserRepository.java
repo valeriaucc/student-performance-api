@@ -2,6 +2,8 @@ package com.viveek.aiclass.domain.repository;
 
 import com.viveek.aiclass.domain.model.User;
 import com.viveek.aiclass.domain.model.enums.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByAuthUserId(UUID authUserId);
 
     List<User> findByRole(UserRole role);
+
+    Page<User> findByRole(UserRole role, Pageable pageable);
 
     boolean existsByEmail(String email);
 

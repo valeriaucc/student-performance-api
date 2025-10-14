@@ -1,6 +1,8 @@
 package com.viveek.aiclass.domain.repository;
 
 import com.viveek.aiclass.domain.model.Grade;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +19,11 @@ public interface GradeRepository extends JpaRepository<Grade, UUID> {
 
     List<Grade> findByClassEntityId(UUID classId);
 
+    Page<Grade> findByClassEntityId(UUID classId, Pageable pageable);
+
     List<Grade> findByStudentId(UUID studentId);
+
+    Page<Grade> findByStudentId(UUID studentId, Pageable pageable);
 
     List<Grade> findByAssessmentKind(String assessmentKind);
 

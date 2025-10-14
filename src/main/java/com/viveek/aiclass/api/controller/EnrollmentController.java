@@ -1,10 +1,12 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
 import com.viveek.aiclass.dto.request.CreateEnrollmentRequest;
 import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
+import com.viveek.aiclass.dto.response.PageResponse;
 import com.viveek.aiclass.service.EnrollmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +14,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +38,7 @@ public class EnrollmentController {
     private final EnrollmentService enrollmentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Enroll a student in a class", description = "Creates a new enrollment (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Student enrolled successfully"),
@@ -48,7 +54,7 @@ public class EnrollmentController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Update enrollment status", description = "Updates the status of an enrollment (TEACHER only)")
     public ResponseEntity<ApiResponse<EnrollmentResponse>> updateEnrollment(
             @Parameter(description = "Enrollment ID") @PathVariable UUID id,
@@ -68,29 +74,30 @@ public class EnrollmentController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get enrollments", description = "Retrieves enrollments with optional filters (authenticated users)")
-    public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getEnrollments(
+    @Operation(summary = "Get enrollments with pagination", description = "Retrieves enrollments with optional filters and pagination (authenticated users)")
+    public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getEnrollments(
             @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
             @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId,
-            @Parameter(description = "Filter by status") @RequestParam(required = false) EnrollmentStatus status) {
+            @Parameter(description = "Filter by status") @RequestParam(required = false) EnrollmentStatus status,
+            @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
-        List<EnrollmentResponse> enrollments;
+        Page<EnrollmentResponse> enrollments;
         if (classId != null) {
-            enrollments = enrollmentService.getEnrollmentsByClassId(classId);
+            enrollments = enrollmentService.getEnrollmentsByClassId(classId, pageable);
         } else if (studentId != null) {
-            enrollments = enrollmentService.getEnrollmentsByStudentId(studentId);
+            enrollments = enrollmentService.getEnrollmentsByStudentId(studentId, pageable);
         } else if (status != null) {
-            enrollments = enrollmentService.getEnrollmentsByStatus(status);
+            enrollments = enrollmentService.getEnrollmentsByStatus(status, pageable);
         } else {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Please provide at least one filter parameter"));
         }
         
-        return ResponseEntity.ok(ApiResponse.success(enrollments));
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(enrollments)));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Delete enrollment", description = "Deletes an enrollment by its ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Enrollment deleted successfully"),

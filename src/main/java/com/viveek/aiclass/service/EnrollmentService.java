@@ -4,12 +4,14 @@ import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
 import com.viveek.aiclass.dto.request.CreateEnrollmentRequest;
 import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Service interface for Enrollment operations.
+ * All list operations use pagination for better performance and consistency.
  */
 public interface EnrollmentService {
 
@@ -19,11 +21,22 @@ public interface EnrollmentService {
 
     EnrollmentResponse getEnrollmentById(UUID id);
 
-    List<EnrollmentResponse> getEnrollmentsByClassId(UUID classId);
+    /**
+     * Get enrollments by class ID with pagination and authorization.
+     * Teachers must own the class, students cannot use this endpoint.
+     */
+    Page<EnrollmentResponse> getEnrollmentsByClassId(UUID classId, Pageable pageable);
 
-    List<EnrollmentResponse> getEnrollmentsByStudentId(UUID studentId);
+    /**
+     * Get enrollments by student ID with pagination and authorization.
+     * Students can only view their own enrollments, teachers can view enrollments for students in their classes.
+     */
+    Page<EnrollmentResponse> getEnrollmentsByStudentId(UUID studentId, Pageable pageable);
 
-    List<EnrollmentResponse> getEnrollmentsByStatus(EnrollmentStatus status);
+    /**
+     * Get enrollments by status with pagination.
+     */
+    Page<EnrollmentResponse> getEnrollmentsByStatus(EnrollmentStatus status, Pageable pageable);
 
     void deleteEnrollment(UUID id);
 }

@@ -1,9 +1,11 @@
 package com.viveek.aiclass.service.impl;
 
+import com.viveek.aiclass.constants.ValidationMessages;
 import com.viveek.aiclass.domain.model.Class;
 import com.viveek.aiclass.domain.model.Enrollment;
 import com.viveek.aiclass.domain.model.User;
 import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
+import com.viveek.aiclass.domain.model.enums.UserRole;
 import com.viveek.aiclass.domain.repository.ClassRepository;
 import com.viveek.aiclass.domain.repository.EnrollmentRepository;
 import com.viveek.aiclass.domain.repository.UserRepository;
@@ -13,18 +15,26 @@ import com.viveek.aiclass.dto.response.EnrollmentResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.EnrollmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
  * Implementation of EnrollmentService.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,17 +46,35 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     public EnrollmentResponse enrollStudent(CreateEnrollmentRequest request) {
-        // Validate class exists
+        log.info("Enrolling student in class: studentId={}, classId={}", 
+                 request.getStudentId(), request.getClassId());
+        
         Class classEntity = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", request.getClassId()));
 
-        // Validate student exists
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of this class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Enrollment creation denied: user {} is not the teacher of class {}", 
+                     currentUser.getUserId(), request.getClassId());
+            throw new AccessDeniedException("You can only enroll students in your own classes");
+        }
+
         User student = userRepository.findById(request.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", request.getStudentId()));
 
-        // Check if student is already enrolled in this class
-        if (enrollmentRepository.findByClassAndStudent(request.getClassId(), request.getStudentId()).isPresent()) {
-            throw new BusinessException("Student is already enrolled in this class");
+        if (student.getRole() != UserRole.STUDENT) {
+            log.warn("Enrollment failed: user is not a student - userId={}, role={}", student.getId(), student.getRole());
+            throw new BusinessException(ValidationMessages.INVALID_ROLE + ": User must be a STUDENT to enroll in a class");
+        }
+
+        Optional<Enrollment> existingEnrollment = enrollmentRepository
+                .findByClassAndStudent(request.getClassId(), request.getStudentId());
+        
+        if (existingEnrollment.isPresent()) {
+            log.warn("Enrollment failed: student already enrolled - studentId={}, classId={}, existingEnrollmentId={}", 
+                     request.getStudentId(), request.getClassId(), existingEnrollment.get().getId());
+            throw new BusinessException(ValidationMessages.DUPLICATE_ENROLLMENT);
         }
 
         Enrollment enrollment = Enrollment.builder()
@@ -56,17 +84,31 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .build();
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+        log.debug("Student enrolled successfully: enrollmentId={}, status={}", 
+                  savedEnrollment.getId(), savedEnrollment.getStatus());
         return EntityMapper.toEnrollmentResponse(savedEnrollment);
     }
 
     @Override
     public EnrollmentResponse updateEnrollment(UUID id, UpdateEnrollmentRequest request) {
+        log.info("Updating enrollment: id={}, newStatus={}", id, request.getStatus());
+        
         Enrollment enrollment = enrollmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
+
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of the class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!enrollment.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Enrollment update denied: user {} tried to update enrollment {} for class owned by teacher {}", 
+                     currentUser.getUserId(), id, enrollment.getClassEntity().getTeacher().getId());
+            throw new AccessDeniedException("You can only update enrollments for your classes");
+        }
 
         enrollment.setStatus(request.getStatus());
 
         Enrollment updatedEnrollment = enrollmentRepository.save(enrollment);
+        log.debug("Enrollment updated successfully: id={}, status={}", 
+                  updatedEnrollment.getId(), updatedEnrollment.getStatus());
         return EntityMapper.toEnrollmentResponse(updatedEnrollment);
     }
 
@@ -75,39 +117,113 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     public EnrollmentResponse getEnrollmentById(UUID id) {
         Enrollment enrollment = enrollmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify access based on role
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isTeacher()) {
+            // Teachers can only view enrollments for their own classes
+            if (!enrollment.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Enrollment access denied: teacher {} tried to access enrollment {} for class owned by teacher {}", 
+                         currentUser.getUserId(), id, enrollment.getClassEntity().getTeacher().getId());
+                throw new AccessDeniedException("You can only view enrollments for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students can only view their own enrollments
+            if (!enrollment.getStudent().getId().equals(currentUser.getUserId())) {
+                log.warn("Enrollment access denied: student {} tried to access enrollment {} for student {}", 
+                         currentUser.getUserId(), id, enrollment.getStudent().getId());
+                throw new AccessDeniedException("You can only view your own enrollments");
+            }
+        }
+        
         return EntityMapper.toEnrollmentResponse(enrollment);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getEnrollmentsByClassId(UUID classId) {
-        return enrollmentRepository.findByClassEntityId(classId).stream()
-                .map(EntityMapper::toEnrollmentResponse)
-                .collect(Collectors.toList());
+    public Page<EnrollmentResponse> getEnrollmentsByClassId(UUID classId, Pageable pageable) {
+        log.debug("Fetching enrollments by class with pagination: classId={}, page={}, size={}", 
+                  classId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify the teacher owns this class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        Class classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+        
+        if (currentUser.isTeacher()) {
+            if (!classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+                log.warn("Enrollments access denied: teacher {} tried to access enrollments for class owned by teacher {}", 
+                         currentUser.getUserId(), classEntity.getTeacher().getId());
+                throw new AccessDeniedException("You can only view enrollments for your classes");
+            }
+        } else if (currentUser.isStudent()) {
+            // Students cannot list all enrollments for a class
+            throw new AccessDeniedException("Students can only view their own enrollments");
+        }
+        
+        return enrollmentRepository.findByClassEntityId(classId, pageable)
+                .map(EntityMapper::toEnrollmentResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getEnrollmentsByStudentId(UUID studentId) {
-        return enrollmentRepository.findByStudentId(studentId).stream()
-                .map(EntityMapper::toEnrollmentResponse)
-                .collect(Collectors.toList());
+    public Page<EnrollmentResponse> getEnrollmentsByStudentId(UUID studentId, Pageable pageable) {
+        log.debug("Fetching enrollments by student with pagination: studentId={}, page={}, size={}", 
+                  studentId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // ✅ AUTHORIZATION: Verify access rights
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        if (currentUser.isStudent()) {
+            // Students can only view their own enrollments
+            if (!studentId.equals(currentUser.getUserId())) {
+                log.warn("Enrollments access denied: student {} tried to access enrollments for student {}", 
+                         currentUser.getUserId(), studentId);
+                throw new AccessDeniedException("You can only view your own enrollments");
+            }
+        } else if (currentUser.isTeacher()) {
+            // Teachers can view enrollments for students in their classes only
+            // Note: For better performance with pagination, consider creating a custom repository query
+            List<Enrollment> filteredEnrollments = enrollmentRepository.findByStudentId(studentId).stream()
+                    .filter(enrollment -> enrollment.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
+                    .toList();
+            List<EnrollmentResponse> responses = filteredEnrollments.stream()
+                    .map(EntityMapper::toEnrollmentResponse)
+                    .collect(Collectors.toList());
+            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+        }
+        
+        return enrollmentRepository.findByStudentId(studentId, pageable)
+                .map(EntityMapper::toEnrollmentResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EnrollmentResponse> getEnrollmentsByStatus(EnrollmentStatus status) {
-        return enrollmentRepository.findByStatus(status).stream()
-                .map(EntityMapper::toEnrollmentResponse)
-                .collect(Collectors.toList());
+    public Page<EnrollmentResponse> getEnrollmentsByStatus(EnrollmentStatus status, Pageable pageable) {
+        log.debug("Fetching enrollments by status with pagination: status={}, page={}, size={}", 
+                  status, pageable.getPageNumber(), pageable.getPageSize());
+        return enrollmentRepository.findByStatus(status, pageable)
+                .map(EntityMapper::toEnrollmentResponse);
     }
 
     @Override
     public void deleteEnrollment(UUID id) {
-        if (!enrollmentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Enrollment", "id", id);
+        log.info("Deleting enrollment: id={}", id);
+        
+        Enrollment enrollment = enrollmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
+        
+        // ✅ AUTHORIZATION: Verify the current user is the teacher of the class
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        if (!enrollment.getClassEntity().getTeacher().getId().equals(currentUser.getUserId())) {
+            log.warn("Enrollment deletion denied: user {} tried to delete enrollment {} for class owned by teacher {}", 
+                     currentUser.getUserId(), id, enrollment.getClassEntity().getTeacher().getId());
+            throw new AccessDeniedException("You can only delete enrollments for your classes");
         }
+        
         enrollmentRepository.deleteById(id);
+        log.debug("Enrollment deleted successfully: id={}", id);
     }
 }
 

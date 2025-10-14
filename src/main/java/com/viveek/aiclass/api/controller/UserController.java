@@ -1,9 +1,11 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.UserRole;
 import com.viveek.aiclass.dto.request.CreateUserRequest;
 import com.viveek.aiclass.dto.request.UpdateUserRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
+import com.viveek.aiclass.dto.response.PageResponse;
 import com.viveek.aiclass.dto.response.UserResponse;
 import com.viveek.aiclass.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -60,7 +66,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Get user by ID", description = "Retrieves a user by their ID (TEACHER only)")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User found"),
@@ -82,7 +88,7 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(summary = "Get user by email", description = "Retrieves a user by their email address (TEACHER only)")
     public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(
             @Parameter(description = "User email") @PathVariable String email) {
@@ -91,14 +97,15 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('TEACHER')")
-    @Operation(summary = "Get all users", description = "Retrieves all users (TEACHER only)")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers(
-            @Parameter(description = "Filter by role") @RequestParam(required = false) UserRole role) {
-        List<UserResponse> users = role != null ? 
-                userService.getUsersByRole(role) : 
-                userService.getAllUsers();
-        return ResponseEntity.ok(ApiResponse.success(users));
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
+    @Operation(summary = "Get all users with pagination", description = "Retrieves all users with pagination support (TEACHER only)")
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
+            @Parameter(description = "Filter by role") @RequestParam(required = false) UserRole role,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<UserResponse> users = role != null ? 
+                userService.getUsersByRole(role, pageable) : 
+                userService.getAllUsers(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(users)));
     }
 
     @DeleteMapping("/{id}")

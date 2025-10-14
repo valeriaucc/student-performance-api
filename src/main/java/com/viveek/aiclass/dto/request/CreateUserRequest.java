@@ -31,7 +31,11 @@ public class CreateUserRequest {
     @NotBlank(message = "Full name is required")
     private String fullName;
 
-    @Schema(description = "User's email address", example = "john.doe@example.com", required = true)
+    @Schema(
+        description = "User's email address (will be normalized to lowercase and trimmed)", 
+        example = "john.doe@example.com", 
+        required = true
+    )
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
     private String email;
