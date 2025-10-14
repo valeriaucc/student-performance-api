@@ -215,15 +215,11 @@ public class GradeServiceImpl implements GradeService {
                 throw new AccessDeniedException("You can only view your own grades");
             }
         } else if (currentUser.isTeacher()) {
-            // Teachers can view grades for students in their classes only
-            // Note: For better performance with pagination, consider creating a custom repository query
-            List<Grade> filteredGrades = gradeRepository.findByStudentId(studentId).stream()
-                    .filter(grade -> grade.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
-                    .toList();
-            List<GradeResponse> responses = filteredGrades.stream()
-                    .map(EntityMapper::toGradeResponse)
-                    .collect(Collectors.toList());
-            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+            return gradeRepository.findByStudentIdAndTeacherId(
+                    studentId,
+                    currentUser.getUserId(),
+                    pageable
+            ).map(EntityMapper::toGradeResponse);
         }
         
         return gradeRepository.findByStudentId(studentId, pageable)

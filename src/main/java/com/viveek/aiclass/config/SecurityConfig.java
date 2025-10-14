@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -46,6 +47,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final SupabaseJwtAuthenticationConverter jwtAuthenticationConverter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     @Value("${supabase.jwt.secret}")
     private String jwtSecret;
@@ -102,7 +104,9 @@ public class SecurityConfig {
             // Stateless session - no server-side sessions
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+            )
+            
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

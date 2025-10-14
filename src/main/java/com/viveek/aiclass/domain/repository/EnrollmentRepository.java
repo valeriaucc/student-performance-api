@@ -19,31 +19,79 @@ import java.util.UUID;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
-    List<Enrollment> findByClassEntityId(UUID classId);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.classEntity.id = :classId")
+    List<Enrollment> findByClassEntityId(@Param("classId") UUID classId);
 
-    Page<Enrollment> findByClassEntityId(UUID classId, Pageable pageable);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.classEntity.id = :classId")
+    Page<Enrollment> findByClassEntityId(@Param("classId") UUID classId, Pageable pageable);
 
-    List<Enrollment> findByStudentId(UUID studentId);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.student.id = :studentId")
+    List<Enrollment> findByStudentId(@Param("studentId") UUID studentId);
 
-    Page<Enrollment> findByStudentId(UUID studentId, Pageable pageable);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.student.id = :studentId")
+    Page<Enrollment> findByStudentId(@Param("studentId") UUID studentId, Pageable pageable);
 
-    List<Enrollment> findByStatus(EnrollmentStatus status);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.status = :status")
+    List<Enrollment> findByStatus(@Param("status") EnrollmentStatus status);
 
-    Page<Enrollment> findByStatus(EnrollmentStatus status, Pageable pageable);
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.status = :status")
+    Page<Enrollment> findByStatus(@Param("status") EnrollmentStatus status, Pageable pageable);
 
-    @Query("SELECT e FROM Enrollment e WHERE e.classEntity.id = :classId AND e.student.id = :studentId")
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.classEntity.id = :classId AND e.student.id = :studentId")
     Optional<Enrollment> findByClassAndStudent(
             @Param("classId") UUID classId,
             @Param("studentId") UUID studentId
     );
 
-    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId AND e.status = :status")
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.student.id = :studentId AND e.status = :status")
     List<Enrollment> findByStudentAndStatus(
             @Param("studentId") UUID studentId,
             @Param("status") EnrollmentStatus status
     );
 
-    @Query("SELECT e FROM Enrollment e WHERE e.classEntity.id = :classId AND e.status = :status")
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.classEntity.id = :classId AND e.status = :status")
     List<Enrollment> findByClassAndStatus(
             @Param("classId") UUID classId,
             @Param("status") EnrollmentStatus status
@@ -71,6 +119,28 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     boolean isClassOwnedByTeacher(
             @Param("classId") UUID classId,
             @Param("teacherId") UUID teacherId
+    );
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END " +
+           "FROM Enrollment e " +
+           "JOIN e.classEntity c " +
+           "WHERE e.student.id = :studentId " +
+           "AND c.teacher.id = :teacherId")
+    boolean isStudentEnrolledWithTeacher(
+            @Param("studentId") UUID studentId,
+            @Param("teacherId") UUID teacherId
+    );
+
+    @Query("SELECT e FROM Enrollment e " +
+           "LEFT JOIN FETCH e.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE e.student.id = :studentId AND c.teacher.id = :teacherId")
+    Page<Enrollment> findByStudentIdAndTeacherId(
+            @Param("studentId") UUID studentId,
+            @Param("teacherId") UUID teacherId,
+            Pageable pageable
     );
 }
 

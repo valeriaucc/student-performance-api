@@ -118,15 +118,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                 throw new AccessDeniedException("You can only view your own recommendations");
             }
         } else if (currentUser.isTeacher()) {
-            // Teachers can view recommendations for students in their classes only
-            // Note: For better performance with pagination, consider creating a custom repository query
-            List<AiRecommendation> filteredRecs = recommendationRepository.findByRecipientId(recipientId).stream()
-                    .filter(rec -> rec.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
-                    .toList();
-            List<RecommendationResponse> responses = filteredRecs.stream()
-                    .map(EntityMapper::toRecommendationResponse)
-                    .collect(Collectors.toList());
-            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+            return recommendationRepository.findByRecipientIdAndTeacherId(
+                    recipientId,
+                    currentUser.getUserId(),
+                    pageable
+            ).map(EntityMapper::toRecommendationResponse);
         }
         
         return recommendationRepository.findByRecipientId(recipientId, pageable)
@@ -157,15 +153,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                          currentUser.getUserId());
                 throw new AccessDeniedException("You can only view recommendations for classes you are enrolled in");
             }
-            // Filter to only show recommendations for this student
-            // Note: For better performance with pagination, consider creating a custom repository query
-            List<AiRecommendation> filteredRecs = recommendationRepository.findByClassEntityId(classId).stream()
-                    .filter(rec -> rec.getRecipient().getId().equals(currentUser.getUserId()))
-                    .toList();
-            List<RecommendationResponse> responses = filteredRecs.stream()
-                    .map(EntityMapper::toRecommendationResponse)
-                    .collect(Collectors.toList());
-            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+            return recommendationRepository.findByClassEntityIdAndRecipientId(
+                    classId,
+                    currentUser.getUserId(),
+                    pageable
+            ).map(EntityMapper::toRecommendationResponse);
         }
         
         return recommendationRepository.findByClassEntityId(classId, pageable)

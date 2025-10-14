@@ -17,26 +17,78 @@ import java.util.UUID;
 @Repository
 public interface GradeRepository extends JpaRepository<Grade, UUID> {
 
-    List<Grade> findByClassEntityId(UUID classId);
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.classEntity.id = :classId")
+    List<Grade> findByClassEntityId(@Param("classId") UUID classId);
 
-    Page<Grade> findByClassEntityId(UUID classId, Pageable pageable);
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.classEntity.id = :classId")
+    Page<Grade> findByClassEntityId(@Param("classId") UUID classId, Pageable pageable);
 
-    List<Grade> findByStudentId(UUID studentId);
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.student.id = :studentId")
+    List<Grade> findByStudentId(@Param("studentId") UUID studentId);
 
-    Page<Grade> findByStudentId(UUID studentId, Pageable pageable);
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.student.id = :studentId")
+    Page<Grade> findByStudentId(@Param("studentId") UUID studentId, Pageable pageable);
 
-    List<Grade> findByAssessmentKind(String assessmentKind);
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.assessmentKind = :assessmentKind")
+    List<Grade> findByAssessmentKind(@Param("assessmentKind") String assessmentKind);
 
-    @Query("SELECT g FROM Grade g WHERE g.classEntity.id = :classId AND g.student.id = :studentId")
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.classEntity.id = :classId AND g.student.id = :studentId")
     List<Grade> findByClassAndStudent(
             @Param("classId") UUID classId,
             @Param("studentId") UUID studentId
     );
 
-    @Query("SELECT g FROM Grade g WHERE g.classEntity.id = :classId AND g.assessmentKind = :assessmentKind")
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.classEntity.id = :classId AND g.assessmentKind = :assessmentKind")
     List<Grade> findByClassAndAssessmentKind(
             @Param("classId") UUID classId,
             @Param("assessmentKind") String assessmentKind
+    );
+
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.student.id = :studentId AND c.teacher.id = :teacherId")
+    Page<Grade> findByStudentIdAndTeacherId(
+            @Param("studentId") UUID studentId,
+            @Param("teacherId") UUID teacherId,
+            Pageable pageable
     );
 }
 

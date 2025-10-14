@@ -183,15 +183,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 throw new AccessDeniedException("You can only view your own enrollments");
             }
         } else if (currentUser.isTeacher()) {
-            // Teachers can view enrollments for students in their classes only
-            // Note: For better performance with pagination, consider creating a custom repository query
-            List<Enrollment> filteredEnrollments = enrollmentRepository.findByStudentId(studentId).stream()
-                    .filter(enrollment -> enrollment.getClassEntity().getTeacher().getId().equals(currentUser.getUserId()))
-                    .toList();
-            List<EnrollmentResponse> responses = filteredEnrollments.stream()
-                    .map(EntityMapper::toEnrollmentResponse)
-                    .collect(Collectors.toList());
-            return new org.springframework.data.domain.PageImpl<>(responses, pageable, responses.size());
+            return enrollmentRepository.findByStudentIdAndTeacherId(
+                    studentId, 
+                    currentUser.getUserId(), 
+                    pageable
+            ).map(EntityMapper::toEnrollmentResponse);
         }
         
         return enrollmentRepository.findByStudentId(studentId, pageable)
