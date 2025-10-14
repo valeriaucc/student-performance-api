@@ -1,1353 +1,1629 @@
 {
-	"info": {
-		"_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
-		"name": "AIClass API v2.0 (With Auth)",
-		"description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "🔐 Authentication",
-			"item": [
-				{
-					"name": "Signup (Supabase)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "apikey",
-								"value": "{{supabase_anon_key}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-					"body": {
-						"mode": "raw",
-						"raw": "{\n  \"email\": \"teacher@university.edu\",\n  \"password\": \"password123\",\n  \"data\": {\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"teacher\"\n  }\n}"
-					},
-						"url": {
-							"raw": "{{supabase_url}}/auth/v1/signup",
-							"host": [
-								"{{supabase_url}}"
-							],
-							"path": [
-								"auth",
-								"v1",
-								"signup"
-							]
-						},
-						"description": "Create a new user in Supabase Auth. The JWT token will be returned in the response."
-					},
-					"response": [],
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Extract and save the JWT token automatically",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.access_token) {",
-									"        // Save JWT token",
-									"        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
-									"        ",
-									"        // Save Auth User ID",
-									"        const authUserId = jsonData.user.id;",
-									"        pm.collectionVariables.set('auth_user_id', authUserId);",
-									"        ",
-									"        console.log('✅ JWT token saved');",
-									"        console.log('✅ Auth User ID:', authUserId);",
-									"        ",
-									"        // Fetch database user ID",
-									"        pm.sendRequest({",
-									"            url: pm.collectionVariables.get('base_url') + '/api/users/auth/' + authUserId,",
-									"            method: 'GET',",
-									"            header: {",
-									"                'Authorization': 'Bearer ' + jsonData.access_token,",
-									"                'Content-Type': 'application/json'",
-									"            }",
-									"        }, function (err, response) {",
-									"            if (err) {",
-									"                console.error('❌ Failed to fetch user profile:', err);",
-									"            } else if (response.code === 200) {",
-									"                const userProfile = response.json();",
-									"                if (userProfile.data && userProfile.data.id) {",
-									"                    pm.collectionVariables.set('user_id', userProfile.data.id);",
-									"                    console.log('✅ Database User ID:', userProfile.data.id);",
-									"                    console.log('✅ User:', userProfile.data.fullName, '(' + userProfile.data.role + ')');",
-									"                }",
-									"            } else {",
-									"                console.error('❌ Failed to fetch user profile. Status:', response.code);",
-									"            }",
-									"        });",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					]
-				},
-				{
-					"name": "Login (Supabase)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "apikey",
-								"value": "{{supabase_anon_key}}",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"teacher@university.edu\",\n  \"password\": \"password123\"\n}"
-						},
-						"url": {
-							"raw": "{{supabase_url}}/auth/v1/token?grant_type=password",
-							"host": [
-								"{{supabase_url}}"
-							],
-							"path": [
-								"auth",
-								"v1",
-								"token"
-							],
-							"query": [
-								{
-									"key": "grant_type",
-									"value": "password"
-								}
-							]
-						},
-						"description": "Login with existing user credentials to get a JWT token."
-					},
-					"response": [],
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Extract and save the JWT token automatically",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.access_token) {",
-									"        // Save JWT token",
-									"        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
-									"        ",
-									"        // Save Auth User ID",
-									"        const authUserId = jsonData.user.id;",
-									"        pm.collectionVariables.set('auth_user_id', authUserId);",
-									"        ",
-									"        console.log('✅ JWT token saved');",
-									"        console.log('✅ Auth User ID:', authUserId);",
-									"        ",
-									"        // Fetch database user ID",
-									"        pm.sendRequest({",
-									"            url: pm.collectionVariables.get('base_url') + '/api/users/auth/' + authUserId,",
-									"            method: 'GET',",
-									"            header: {",
-									"                'Authorization': 'Bearer ' + jsonData.access_token,",
-									"                'Content-Type': 'application/json'",
-									"            }",
-									"        }, function (err, response) {",
-									"            if (err) {",
-									"                console.error('❌ Failed to fetch user profile:', err);",
-									"            } else if (response.code === 200) {",
-									"                const userProfile = response.json();",
-									"                if (userProfile.data && userProfile.data.id) {",
-									"                    pm.collectionVariables.set('user_id', userProfile.data.id);",
-									"                    console.log('✅ Database User ID:', userProfile.data.id);",
-									"                    console.log('✅ User:', userProfile.data.fullName, '(' + userProfile.data.role + ')');",
-									"                }",
-									"            } else {",
-									"                console.error('❌ Failed to fetch user profile. Status:', response.code);",
-									"            }",
-									"        });",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "👤 Users",
-			"item": [
-				{
-					"name": "Get All Users",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users"
-							]
-						},
-						"description": "Get all users in the system (teachers and students). Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Get User by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{user_id}}"
-							]
-						},
-						"description": "Get a specific user by UUID. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Get User by Auth User ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/auth/{{auth_user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"auth",
-								"{{auth_user_id}}"
-							]
-						},
-						"description": "Get user by their Supabase Auth User ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get User by Email",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/email/teacher@university.edu",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"email",
-								"teacher@university.edu"
-							]
-						},
-						"description": "Get user by email. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Create User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"authUserId\": \"{{auth_user_id}}\",\n  \"fullName\": \"Dr. John Smith\",\n  \"email\": \"john.smith@university.edu\",\n  \"role\": \"TEACHER\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 305\",\n    \"phone\": \"+1-555-0123\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/users",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users"
-							]
-						},
-						"description": "Create user profile. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Update User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fullName\": \"Dr. John Smith Updated\",\n  \"email\": \"john.updated@university.edu\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 306\",\n    \"phone\": \"+1-555-0124\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{user_id}}"
-							]
-						},
-						"description": "Update user profile. Users can update their own profile. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"{{user_id}}"
-							]
-						},
-						"description": "Delete user. Users can delete their own profile. Requires authentication."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "📚 Subjects",
-			"item": [
-				{
-					"name": "Get All Subjects",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/subjects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects"
-							]
-						},
-						"description": "Get all subjects. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Subject by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects",
-								"{{subject_id}}"
-							]
-						},
-						"description": "Get a subject by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Subject by Code",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/subjects/code/CS101",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects",
-								"code",
-								"CS101"
-							]
-						},
-						"description": "Get a subject by its code. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Create Subject",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"description\": \"Fundamental concepts of computer science\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/subjects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects"
-							]
-						},
-						"description": "Create a new subject. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Subject",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Advanced Computer Science\",\n  \"description\": \"Updated description\",\n  \"credits\": 5,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects",
-								"{{subject_id}}"
-							]
-						},
-						"description": "Update a subject. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Subject",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/subjects/{{subject_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"subjects",
-								"{{subject_id}}"
-							]
-						},
-						"description": "Delete a subject. Requires TEACHER role."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "🏫 Classes",
-			"item": [
-				{
-					"name": "Get All Classes",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/classes",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"classes"
-							]
-						},
-						"description": "Get all classes. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Class by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/classes/{{class_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"classes",
-								"{{class_id}}"
-							]
-						},
-						"description": "Get a class by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Create Class",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"subjectId\": \"{{subject_id}}\",\n  \"teacherId\": \"{{user_id}}\",\n  \"year\": 2025,\n  \"semester\": \"SPRING\",\n  \"groupCode\": \"A\",\n  \"schedule\": \"Mon/Wed/Fri 10:00-11:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 201\",\n    \"capacity\": 30\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/classes",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"classes"
-							]
-						},
-						"description": "Create a new class. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Class",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"year\": 2025,\n  \"semester\": \"FALL\",\n  \"groupCode\": \"B\",\n  \"schedule\": \"Tue/Thu 14:00-15:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 202\",\n    \"capacity\": 35\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/classes/{{class_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"classes",
-								"{{class_id}}"
-							]
-						},
-						"description": "Update a class. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Class",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/classes/{{class_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"classes",
-								"{{class_id}}"
-							]
-						},
-						"description": "Delete a class. Requires TEACHER role."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "👨‍🎓 Enrollments",
-			"item": [
-				{
-					"name": "Get All Enrollments",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/enrollments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"enrollments"
-							]
-						},
-						"description": "Get all enrollments. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Enrollment by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"enrollments",
-								"{{enrollment_id}}"
-							]
-						},
-						"description": "Get an enrollment by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Create Enrollment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"enrollmentStatus\": \"ACTIVE\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/enrollments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"enrollments"
-							]
-						},
-						"description": "Enroll a student in a class. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Enrollment Status",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"enrollmentStatus\": \"DROPPED\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"enrollments",
-								"{{enrollment_id}}"
-							]
-						},
-						"description": "Update enrollment status. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Enrollment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"enrollments",
-								"{{enrollment_id}}"
-							]
-						},
-						"description": "Delete an enrollment. Requires TEACHER role."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "📝 Grades",
-			"item": [
-				{
-					"name": "Get All Grades",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/grades",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"grades"
-							]
-						},
-						"description": "Get all grades. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Grade by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/grades/{{grade_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"grades",
-								"{{grade_id}}"
-							]
-						},
-						"description": "Get a grade by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Create Grade",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/grades",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"grades"
-							]
-						},
-						"description": "Create a new grade. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Grade",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam (Revised)\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-11T10:00:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/grades/{{grade_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"grades",
-								"{{grade_id}}"
-							]
-						},
-						"description": "Update a grade. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Grade",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/grades/{{grade_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"grades",
-								"{{grade_id}}"
-							]
-						},
-						"description": "Delete a grade. Requires TEACHER role."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "🤖 AI Recommendations",
-			"item": [
-				{
-					"name": "Get All Recommendations",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/recommendations",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"recommendations"
-							]
-						},
-						"description": "Get all AI recommendations. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Recommendation by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"recommendations",
-								"{{recommendation_id}}"
-							]
-						},
-						"description": "Get a recommendation by ID. Requires authentication."
-					},
-					"response": []
-				},
-				{
-					"name": "Create Recommendation",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"recipientId\": \"{{user_id}}\",\n  \"classId\": \"{{class_id}}\",\n  \"audience\": \"STUDENT\",\n  \"message\": \"Your performance has been excellent. Keep up the good work!\",\n  \"metadata\": {\n    \"confidence\": 0.95,\n    \"category\": \"encouragement\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/recommendations",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"recommendations"
-							]
-						},
-						"description": "Create a new AI recommendation. Requires TEACHER role."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Recommendation",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"recommendations",
-								"{{recommendation_id}}"
-							]
-						},
-						"description": "Delete a recommendation. Requires TEACHER role."
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{jwt_token}}",
-				"type": "string"
-			}
-		]
-	},
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8080",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "user_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "auth_user_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "subject_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "class_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "enrollment_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "grade_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "recommendation_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-		"key": "supabase_url",
-		"value": "https://jrhpocpbeshnbnviehuq.supabase.co",
-		"type": "string"
-		},
-		{
-		"key": "supabase_anon_key",
-		"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U",
-		"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
+    "name": "AIClass API v2.0 (With Auth)",
+    "description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication.\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "\ud83d\udd10 Authentication",
+      "item": [
+        {
+          "name": "Signup (Supabase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabase_anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teacher@university.edu\",\n  \"password\": \"password123\",\n  \"data\": {\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"teacher\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{supabase_url}}/auth/v1/signup",
+              "host": [
+                "{{supabase_url}}"
+              ],
+              "path": [
+                "auth",
+                "v1",
+                "signup"
+              ]
+            },
+            "description": "Create a new user in Supabase Auth. The JWT token will be returned in the response."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Extract and save the JWT token automatically",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.access_token) {",
+                  "        // Save JWT token",
+                  "        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+                  "        ",
+                  "        // Save Auth User ID",
+                  "        const authUserId = jsonData.user.id;",
+                  "        pm.collectionVariables.set('auth_user_id', authUserId);",
+                  "        ",
+                  "        console.log('\u2705 JWT token saved');",
+                  "        console.log('\u2705 Auth User ID:', authUserId);",
+                  "        ",
+                  "        // Fetch database user ID",
+                  "        pm.sendRequest({",
+                  "            url: pm.collectionVariables.get('base_url') + '/api/users/auth/' + authUserId,",
+                  "            method: 'GET',",
+                  "            header: {",
+                  "                'Authorization': 'Bearer ' + jsonData.access_token,",
+                  "                'Content-Type': 'application/json'",
+                  "            }",
+                  "        }, function (err, response) {",
+                  "            if (err) {",
+                  "                console.error('\u274c Failed to fetch user profile:', err);",
+                  "            } else if (response.code === 200) {",
+                  "                const userProfile = response.json();",
+                  "                if (userProfile.data && userProfile.data.id) {",
+                  "                    pm.collectionVariables.set('user_id', userProfile.data.id);",
+                  "                    console.log('\u2705 Database User ID:', userProfile.data.id);",
+                  "                    console.log('\u2705 User:', userProfile.data.fullName, '(' + userProfile.data.role + ')');",
+                  "                }",
+                  "            } else {",
+                  "                console.error('\u274c Failed to fetch user profile. Status:', response.code);",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Supabase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabase_anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teacher@university.edu\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{supabase_url}}/auth/v1/token?grant_type=password",
+              "host": [
+                "{{supabase_url}}"
+              ],
+              "path": [
+                "auth",
+                "v1",
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "description": "Login with existing user credentials to get a JWT token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Extract and save the JWT token automatically",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.access_token) {",
+                  "        // Save JWT token",
+                  "        pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+                  "        ",
+                  "        // Save Auth User ID",
+                  "        const authUserId = jsonData.user.id;",
+                  "        pm.collectionVariables.set('auth_user_id', authUserId);",
+                  "        ",
+                  "        console.log('\u2705 JWT token saved');",
+                  "        console.log('\u2705 Auth User ID:', authUserId);",
+                  "        ",
+                  "        // Fetch database user ID",
+                  "        pm.sendRequest({",
+                  "            url: pm.collectionVariables.get('base_url') + '/api/users/auth/' + authUserId,",
+                  "            method: 'GET',",
+                  "            header: {",
+                  "                'Authorization': 'Bearer ' + jsonData.access_token,",
+                  "                'Content-Type': 'application/json'",
+                  "            }",
+                  "        }, function (err, response) {",
+                  "            if (err) {",
+                  "                console.error('\u274c Failed to fetch user profile:', err);",
+                  "            } else if (response.code === 200) {",
+                  "                const userProfile = response.json();",
+                  "                if (userProfile.data && userProfile.data.id) {",
+                  "                    pm.collectionVariables.set('user_id', userProfile.data.id);",
+                  "                    console.log('\u2705 Database User ID:', userProfile.data.id);",
+                  "                    console.log('\u2705 User:', userProfile.data.fullName, '(' + userProfile.data.role + ')');",
+                  "                }",
+                  "            } else {",
+                  "                console.error('\u274c Failed to fetch user profile. Status:', response.code);",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc64 Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Get all users in the system (teachers and students). Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Get a specific user by UUID. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by Auth User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/auth/{{auth_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "auth",
+                "{{auth_user_id}}"
+              ]
+            },
+            "description": "Get user by their Supabase Auth User ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by Email",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/email/teacher@university.edu",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "email",
+                "teacher@university.edu"
+              ]
+            },
+            "description": "Get user by email. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authUserId\": \"{{auth_user_id}}\",\n  \"fullName\": \"Dr. John Smith\",\n  \"email\": \"john.smith@university.edu\",\n  \"role\": \"TEACHER\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 305\",\n    \"phone\": \"+1-555-0123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Create user profile. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Dr. John Smith Updated\",\n  \"email\": \"john.updated@university.edu\",\n  \"metadata\": {\n    \"department\": \"Computer Science\",\n    \"office\": \"Building A, Room 306\",\n    \"phone\": \"+1-555-0124\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Update user profile. Users can update their own profile. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Delete user. Users can delete their own profile. Requires authentication."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcda Subjects",
+      "item": [
+        {
+          "name": "Get All Subjects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/subjects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects"
+              ]
+            },
+            "description": "Get all subjects. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subject by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects",
+                "{{subject_id}}"
+              ]
+            },
+            "description": "Get a subject by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subject by Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/subjects/code/CS101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects",
+                "code",
+                "CS101"
+              ]
+            },
+            "description": "Get a subject by its code. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Subject",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"description\": \"Fundamental concepts of computer science\",\n  \"credits\": 4,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/subjects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects"
+              ]
+            },
+            "description": "Create a new subject. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Subject",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Advanced Computer Science\",\n  \"description\": \"Updated description\",\n  \"credits\": 5,\n  \"metadata\": {\n    \"level\": \"undergraduate\",\n    \"department\": \"Computer Science\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects",
+                "{{subject_id}}"
+              ]
+            },
+            "description": "Update a subject. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Subject",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/subjects/{{subject_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subjects",
+                "{{subject_id}}"
+              ]
+            },
+            "description": "Delete a subject. Requires TEACHER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfeb Classes",
+      "item": [
+        {
+          "name": "Get All Classes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/classes?page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "classes"
+              ],
+              "query": [
+                {
+                  "key": "teacherId",
+                  "value": "{{teacher_id}}",
+                  "description": "Filter by teacher ID (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "subjectId",
+                  "value": "{{subject_id}}",
+                  "description": "Filter by subject ID (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "year",
+                  "value": "2025",
+                  "description": "Filter by year (optional, combine with semester)",
+                  "disabled": true
+                },
+                {
+                  "key": "semester",
+                  "value": "SPRING",
+                  "description": "Filter by semester: SPRING, SUMMER, FALL, WINTER (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            },
+            "description": "Get all classes. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Class by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{{class_id}}"
+              ]
+            },
+            "description": "Get a class by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Class",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"{{subject_id}}\",\n  \"teacherId\": \"{{user_id}}\",\n  \"year\": 2025,\n  \"semester\": \"SPRING\",\n  \"groupCode\": \"A\",\n  \"schedule\": \"Mon/Wed/Fri 10:00-11:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 201\",\n    \"capacity\": 30\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/classes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "classes"
+              ]
+            },
+            "description": "Create a new class. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Class",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"semester\": \"FALL\",\n  \"groupCode\": \"B\",\n  \"schedule\": \"Tue/Thu 14:00-15:30\",\n  \"metadata\": {\n    \"room\": \"Building C, Room 202\",\n    \"capacity\": 35\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{{class_id}}"
+              ]
+            },
+            "description": "Update a class. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Class",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/classes/{{class_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{{class_id}}"
+              ]
+            },
+            "description": "Delete a class. Requires TEACHER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc68\u200d\ud83c\udf93 Enrollments",
+      "item": [
+        {
+          "name": "Get Enrollments by Class",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/enrollments?classId={{class_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "{{class_id}}",
+                  "description": "Filter by class ID (REQUIRED: use classId, studentId, or status)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Enrollments by Student",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/enrollments?studentId={{student_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "{{student_id}}",
+                  "description": "Filter by student ID (REQUIRED: use classId, studentId, or status)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Enrollments by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/enrollments?status=ACTIVE&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "Filter by status: ACTIVE, DROPPED, or COMPLETED (REQUIRED: use classId, studentId, or status)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Enrollment by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments",
+                "{{enrollment_id}}"
+              ]
+            },
+            "description": "Get an enrollment by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Enrollment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"enrollmentStatus\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/enrollments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "description": "Enroll a student in a class. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Enrollment Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollmentStatus\": \"DROPPED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments",
+                "{{enrollment_id}}"
+              ]
+            },
+            "description": "Update enrollment status. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Enrollment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/enrollments/{{enrollment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "enrollments",
+                "{{enrollment_id}}"
+              ]
+            },
+            "description": "Delete an enrollment. Requires TEACHER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcdd Grades",
+      "item": [
+        {
+          "name": "Get Grades by Class",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/grades?classId={{class_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades"
+              ],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "{{class_id}}",
+                  "description": "Filter by class ID (REQUIRED: use classId OR studentId, not both)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Grades by Student",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/grades?studentId={{student_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades"
+              ],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "{{student_id}}",
+                  "description": "Filter by student ID (REQUIRED: use classId OR studentId, not both)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Grade by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades",
+                "{{grade_id}}"
+              ]
+            },
+            "description": "Get a grade by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Grade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/grades",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades"
+              ]
+            },
+            "description": "Create a new grade. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Grade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam (Revised)\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-11T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades",
+                "{{grade_id}}"
+              ]
+            },
+            "description": "Update a grade. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Grade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/grades/{{grade_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "grades",
+                "{{grade_id}}"
+              ]
+            },
+            "description": "Delete a grade. Requires TEACHER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\udd16 AI Recommendations",
+      "item": [
+        {
+          "name": "Get Recommendations by Recipient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/recommendations?recipientId={{user_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "recipientId",
+                  "value": "{{user_id}}",
+                  "description": "Filter by recipientId (REQUIRED: use recipientId, classId, or audience)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommendations by Class",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/recommendations?classId={{class_id}}&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "{{class_id}}",
+                  "description": "Filter by classId (REQUIRED: use recipientId, classId, or audience)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommendations by Audience",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/recommendations?audience=INDIVIDUAL&page=0&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "audience",
+                  "value": "INDIVIDUAL",
+                  "description": "Filter by audience (REQUIRED: use recipientId, classId, or audience)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Page size (default: 20)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommendation by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{recommendation_id}}"
+              ]
+            },
+            "description": "Get a recommendation by ID. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recommendation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientId\": \"{{user_id}}\",\n  \"classId\": \"{{class_id}}\",\n  \"audience\": \"STUDENT\",\n  \"message\": \"Your performance has been excellent. Keep up the good work!\",\n  \"metadata\": {\n    \"confidence\": 0.95,\n    \"category\": \"encouragement\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/recommendations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations"
+              ]
+            },
+            "description": "Create a new AI recommendation. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Recommendation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/recommendations/{{recommendation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendations",
+                "{{recommendation_id}}"
+              ]
+            },
+            "description": "Delete a recommendation. Requires TEACHER role."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auth_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subject_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "class_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "enrollment_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "grade_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recommendation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supabase_url",
+      "value": "https://jrhpocpbeshnbnviehuq.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "supabase_anon_key",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHBvY3BiZXNobmJudmllaHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzNzY5NTIsImV4cCI6MjA3NDk1Mjk1Mn0.XlSLPs6MwFIV2N-Z_hnrYfGiGI3FJV-gRZkOWIW7S0U",
+      "type": "string"
+    }
+  ]
 }
-

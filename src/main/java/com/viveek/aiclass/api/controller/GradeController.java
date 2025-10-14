@@ -72,10 +72,22 @@ public class GradeController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get grades with pagination", description = "Retrieves grades with optional filters and pagination (authenticated users)")
+    @Operation(
+        summary = "Get grades with pagination", 
+        description = "Retrieves grades with filters and pagination (authenticated users). " +
+                      "⚠️ Exactly ONE filter parameter is REQUIRED: either classId OR studentId (not both). " +
+                      "Use page and size parameters for pagination (default: page=0, size=20)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Grades retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request - Provide exactly one filter (classId or studentId, not both)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<GradeResponse>>> getGrades(
-            @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by student ID") @RequestParam(required = false) UUID studentId,
+            @Parameter(description = "Filter by class ID - retrieves all grades for a class (use classId OR studentId, not both)", example = "4689b828-0cdb-4333-a9c8-48dce64e2409") 
+            @RequestParam(required = false) UUID classId,
+            @Parameter(description = "Filter by student ID - retrieves all grades for a student (use classId OR studentId, not both)", example = "1bb9ce94-66b2-4431-8b2b-724d569e2f24") 
+            @RequestParam(required = false) UUID studentId,
             @PageableDefault(size = 20, sort = "gradedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
         Page<GradeResponse> grades;

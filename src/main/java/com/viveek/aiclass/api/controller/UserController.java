@@ -98,9 +98,20 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
-    @Operation(summary = "Get all users with pagination", description = "Retrieves all users with pagination support (TEACHER only)")
+    @Operation(
+        summary = "Get all users with pagination", 
+        description = "Retrieves all users with optional role filter and pagination (TEACHER only). " +
+                      "Filter by role is OPTIONAL - fetches all users if no role specified. " +
+                      "Use page and size parameters for pagination (default: page=0, size=20)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - TEACHER role required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
-            @Parameter(description = "Filter by role") @RequestParam(required = false) UserRole role,
+            @Parameter(description = "Filter by role: 'teacher' or 'student' (optional - fetches all if not specified)", example = "student") 
+            @RequestParam(required = false) UserRole role,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<UserResponse> users = role != null ? 
                 userService.getUsersByRole(role, pageable) : 

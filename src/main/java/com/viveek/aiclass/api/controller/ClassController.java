@@ -73,12 +73,26 @@ public class ClassController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all classes with pagination", description = "Retrieves all classes with optional filters and pagination (authenticated users)")
+    @Operation(
+        summary = "Get all classes with pagination", 
+        description = "Retrieves all classes with optional filters and pagination (authenticated users). " +
+                      "Filters are OPTIONAL - you can fetch all classes without any filter. " +
+                      "Available filters: teacherId, subjectId, or year+semester combination. " +
+                      "Use page and size parameters for pagination (default: page=0, size=20)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Classes retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<ClassResponse>>> getAllClasses(
-            @Parameter(description = "Filter by teacher ID") @RequestParam(required = false) UUID teacherId,
-            @Parameter(description = "Filter by subject ID") @RequestParam(required = false) UUID subjectId,
-            @Parameter(description = "Filter by year") @RequestParam(required = false) Integer year,
-            @Parameter(description = "Filter by semester") @RequestParam(required = false) Semester semester,
+            @Parameter(description = "Filter by teacher ID - retrieves classes taught by this teacher (optional)", example = "15aabbcd-d17d-4eb4-b62d-d5f5a2f7209d") 
+            @RequestParam(required = false) UUID teacherId,
+            @Parameter(description = "Filter by subject ID - retrieves classes for this subject (optional)") 
+            @RequestParam(required = false) UUID subjectId,
+            @Parameter(description = "Filter by year - combine with semester (optional)", example = "2025") 
+            @RequestParam(required = false) Integer year,
+            @Parameter(description = "Filter by semester: SPRING, SUMMER, FALL, WINTER - combine with year (optional)", example = "SPRING") 
+            @RequestParam(required = false) Semester semester,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
         Page<ClassResponse> classes;

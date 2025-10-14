@@ -61,11 +61,24 @@ public class RecommendationController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get recommendations with pagination", description = "Retrieves recommendations with optional filters and pagination (authenticated users)")
+    @Operation(
+        summary = "Get recommendations with pagination", 
+        description = "Retrieves recommendations with filters and pagination (authenticated users). " +
+                      "⚠️ At least ONE filter parameter is REQUIRED: recipientId, classId, or audience. " +
+                      "Use page and size parameters for pagination (default: page=0, size=20)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Recommendations retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request - At least one filter parameter is required"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+    })
     public ResponseEntity<ApiResponse<PageResponse<RecommendationResponse>>> getRecommendations(
-            @Parameter(description = "Filter by recipient ID") @RequestParam(required = false) UUID recipientId,
-            @Parameter(description = "Filter by class ID") @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by audience") @RequestParam(required = false) RecommendationAudience audience,
+            @Parameter(description = "Filter by recipient user ID (at least one filter required)") 
+            @RequestParam(required = false) UUID recipientId,
+            @Parameter(description = "Filter by class ID (at least one filter required)") 
+            @RequestParam(required = false) UUID classId,
+            @Parameter(description = "Filter by audience: INDIVIDUAL, CLASS, or GENERAL (at least one filter required)", example = "INDIVIDUAL") 
+            @RequestParam(required = false) RecommendationAudience audience,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
         Page<RecommendationResponse> recommendations;

@@ -18,17 +18,49 @@ import java.util.UUID;
 @Repository
 public interface AiRecommendationRepository extends JpaRepository<AiRecommendation, UUID> {
 
-    List<AiRecommendation> findByRecipientId(UUID recipientId);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.recipient.id = :recipientId")
+    List<AiRecommendation> findByRecipientId(@Param("recipientId") UUID recipientId);
 
-    Page<AiRecommendation> findByRecipientId(UUID recipientId, Pageable pageable);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.recipient.id = :recipientId")
+    Page<AiRecommendation> findByRecipientId(@Param("recipientId") UUID recipientId, Pageable pageable);
 
-    List<AiRecommendation> findByClassEntityId(UUID classId);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.classEntity.id = :classId")
+    List<AiRecommendation> findByClassEntityId(@Param("classId") UUID classId);
 
-    Page<AiRecommendation> findByClassEntityId(UUID classId, Pageable pageable);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.classEntity.id = :classId")
+    Page<AiRecommendation> findByClassEntityId(@Param("classId") UUID classId, Pageable pageable);
 
-    List<AiRecommendation> findByAudience(RecommendationAudience audience);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.audience = :audience")
+    List<AiRecommendation> findByAudience(@Param("audience") RecommendationAudience audience);
 
-    Page<AiRecommendation> findByAudience(RecommendationAudience audience, Pageable pageable);
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.audience = :audience")
+    Page<AiRecommendation> findByAudience(@Param("audience") RecommendationAudience audience, Pageable pageable);
 
     @Query("SELECT r FROM AiRecommendation r WHERE r.classEntity.id = :classId AND r.audience = :audience")
     List<AiRecommendation> findByClassAndAudience(
@@ -40,6 +72,40 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
     List<AiRecommendation> findByRecipientAndClass(
             @Param("recipientId") UUID recipientId,
             @Param("classId") UUID classId
+    );
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+           "FROM AiRecommendation r " +
+           "JOIN r.classEntity c " +
+           "WHERE r.id = :recommendationId " +
+           "AND c.teacher.id = :teacherId")
+    boolean isOwnedByTeacher(
+            @Param("recommendationId") UUID recommendationId,
+            @Param("teacherId") UUID teacherId
+    );
+
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.recipient.id = :recipientId AND c.teacher.id = :teacherId")
+    Page<AiRecommendation> findByRecipientIdAndTeacherId(
+            @Param("recipientId") UUID recipientId,
+            @Param("teacherId") UUID teacherId,
+            Pageable pageable
+    );
+
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "WHERE r.classEntity.id = :classId AND r.recipient.id = :recipientId")
+    Page<AiRecommendation> findByClassEntityIdAndRecipientId(
+            @Param("classId") UUID classId,
+            @Param("recipientId") UUID recipientId,
+            Pageable pageable
     );
 }
 
