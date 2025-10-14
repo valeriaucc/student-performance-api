@@ -164,19 +164,21 @@ class SubjectServiceTest {
 
     @Test
     void deleteSubject_WhenExists_ShouldDeleteSubject() {
-        when(subjectRepository.existsById(subjectId)).thenReturn(true);
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(testSubject));
+        when(subjectRepository.save(any(Subject.class))).thenReturn(testSubject);
 
         subjectService.deleteSubject(subjectId);
 
-        verify(subjectRepository).deleteById(subjectId);
+        verify(subjectRepository).save(any(Subject.class));
+        assertNotNull(testSubject.getDeletedAt());
     }
 
     @Test
     void deleteSubject_WhenNotFound_ShouldThrowException() {
-        when(subjectRepository.existsById(subjectId)).thenReturn(false);
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> subjectService.deleteSubject(subjectId));
-        verify(subjectRepository, never()).deleteById(any());
+        verify(subjectRepository, never()).save(any());
     }
 }

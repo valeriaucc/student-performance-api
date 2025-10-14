@@ -204,7 +204,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     public void deleteClass(UUID id) {
-        log.info("Deleting class: id={}", id);
+        log.info("Soft deleting class: id={}", id);
         
         Class classEntity = classRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
@@ -217,8 +217,9 @@ public class ClassServiceImpl implements ClassService {
             throw new AccessDeniedException("You can only delete your own classes");
         }
         
-        classRepository.deleteById(id);
-        log.debug("Class deleted successfully: id={}", id);
+        classEntity.softDelete();
+        classRepository.save(classEntity);
+        log.debug("Class soft deleted successfully: id={}", id);
     }
 }
 

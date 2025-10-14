@@ -185,19 +185,21 @@ class UserServiceTest {
 
     @Test
     void deleteUser_WhenExists_ShouldDeleteUser() {
-        when(userRepository.existsById(userId)).thenReturn(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         userService.deleteUser(userId);
 
-        verify(userRepository).deleteById(userId);
+        verify(userRepository).save(any(User.class));
+        assertNotNull(testUser.getDeletedAt());
     }
 
     @Test
     void deleteUser_WhenNotFound_ShouldThrowException() {
-        when(userRepository.existsById(userId)).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> userService.deleteUser(userId));
-        verify(userRepository, never()).deleteById(any());
+        verify(userRepository, never()).save(any());
     }
 }

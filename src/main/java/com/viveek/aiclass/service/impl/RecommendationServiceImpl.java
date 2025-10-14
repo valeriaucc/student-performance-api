@@ -176,7 +176,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public void deleteRecommendation(UUID id) {
-        log.info("Deleting recommendation: id={}", id);
+        log.info("Soft deleting recommendation: id={}", id);
         
         AiRecommendation recommendation = recommendationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
@@ -189,8 +189,9 @@ public class RecommendationServiceImpl implements RecommendationService {
             throw new AccessDeniedException("You can only delete recommendations for your classes");
         }
         
-        recommendationRepository.deleteById(id);
-        log.debug("Recommendation deleted successfully: id={}", id);
+        recommendation.softDelete();
+        recommendationRepository.save(recommendation);
+        log.debug("Recommendation soft deleted successfully: id={}", id);
     }
 }
 

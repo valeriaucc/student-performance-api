@@ -385,10 +385,12 @@ class EnrollmentServiceTest {
         ReflectionTestUtils.setField(enrollment, "id", enrollmentId);
         
         when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepository.save(any(Enrollment.class))).thenReturn(enrollment);
 
         enrollmentService.deleteEnrollment(enrollmentId);
 
-        verify(enrollmentRepository).deleteById(enrollmentId);
+        verify(enrollmentRepository).save(any(Enrollment.class));
+        assertNotNull(enrollment.getDeletedAt());
     }
 
     @Test
@@ -398,6 +400,6 @@ class EnrollmentServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> enrollmentService.deleteEnrollment(enrollmentId));
-        verify(enrollmentRepository, never()).deleteById(any());
+        verify(enrollmentRepository, never()).save(any());
     }
 }

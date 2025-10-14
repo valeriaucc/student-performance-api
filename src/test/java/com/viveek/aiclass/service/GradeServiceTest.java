@@ -453,10 +453,12 @@ class GradeServiceTest {
         ReflectionTestUtils.setField(grade, "id", gradeId);
         
         when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade));
+        when(gradeRepository.save(any(Grade.class))).thenReturn(grade);
 
         gradeService.deleteGrade(gradeId);
 
-        verify(gradeRepository).deleteById(gradeId);
+        verify(gradeRepository).save(any(Grade.class));
+        assertNotNull(grade.getDeletedAt());
     }
 
     @Test
@@ -466,6 +468,6 @@ class GradeServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> gradeService.deleteGrade(gradeId));
-        verify(gradeRepository, never()).deleteById(any());
+        verify(gradeRepository, never()).save(any());
     }
 }

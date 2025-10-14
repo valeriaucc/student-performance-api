@@ -109,13 +109,15 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public void deleteSubject(UUID id) {
-        log.info("Deleting subject: id={}", id);
-        if (!subjectRepository.existsById(id)) {
-            log.warn("Subject deletion failed: subject not found - id={}", id);
-            throw new ResourceNotFoundException("Subject", "id", id);
-        }
-        subjectRepository.deleteById(id);
-        log.debug("Subject deleted successfully: id={}", id);
+        log.info("Soft deleting subject: id={}", id);
+        Subject subject = subjectRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Subject deletion failed: subject not found - id={}", id);
+                    return new ResourceNotFoundException("Subject", "id", id);
+                });
+        subject.softDelete();
+        subjectRepository.save(subject);
+        log.debug("Subject soft deleted successfully: id={}", id);
     }
 
     @Override

@@ -229,7 +229,7 @@ public class GradeServiceImpl implements GradeService {
 
     @Override
     public void deleteGrade(UUID id) {
-        log.info("Deleting grade: id={}", id);
+        log.info("Soft deleting grade: id={}", id);
         
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Grade", "id", id));
@@ -242,8 +242,9 @@ public class GradeServiceImpl implements GradeService {
             throw new AccessDeniedException("You can only delete grades for students in your classes");
         }
         
-        gradeRepository.deleteById(id);
-        log.debug("Grade deleted successfully: id={}", id);
+        grade.softDelete();
+        gradeRepository.save(grade);
+        log.debug("Grade soft deleted successfully: id={}", id);
     }
 }
 

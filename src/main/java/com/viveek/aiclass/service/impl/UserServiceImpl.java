@@ -153,13 +153,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(UUID id) {
-        log.info("Deleting user: id={}", id);
-        if (!userRepository.existsById(id)) {
-            log.warn("User deletion failed: user not found - id={}", id);
-            throw new ResourceNotFoundException("User", "id", id);
-        }
-        userRepository.deleteById(id);
-        log.debug("User deleted successfully: id={}", id);
+        log.info("Soft deleting user: id={}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("User deletion failed: user not found - id={}", id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
+        user.softDelete();
+        userRepository.save(user);
+        log.debug("User soft deleted successfully: id={}", id);
     }
 
     @Override

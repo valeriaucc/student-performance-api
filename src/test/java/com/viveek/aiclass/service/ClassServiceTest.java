@@ -361,10 +361,12 @@ class ClassServiceTest {
         ReflectionTestUtils.setField(classEntity, "id", classId);
         
         when(classRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(classRepository.save(any(Class.class))).thenReturn(classEntity);
 
         classService.deleteClass(classId);
 
-        verify(classRepository).deleteById(classId);
+        verify(classRepository).save(any(Class.class));
+        assertNotNull(classEntity.getDeletedAt());
     }
 
     @Test
@@ -374,6 +376,6 @@ class ClassServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> classService.deleteClass(classId));
-        verify(classRepository, never()).deleteById(any());
+        verify(classRepository, never()).save(any());
     }
 }

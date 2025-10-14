@@ -206,7 +206,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     public void deleteEnrollment(UUID id) {
-        log.info("Deleting enrollment: id={}", id);
+        log.info("Soft deleting enrollment: id={}", id);
         
         Enrollment enrollment = enrollmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
@@ -219,8 +219,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new AccessDeniedException("You can only delete enrollments for your classes");
         }
         
-        enrollmentRepository.deleteById(id);
-        log.debug("Enrollment deleted successfully: id={}", id);
+        enrollment.softDelete();
+        enrollmentRepository.save(enrollment);
+        log.debug("Enrollment soft deleted successfully: id={}", id);
     }
 }
 
