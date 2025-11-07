@@ -159,8 +159,8 @@ public class UserServiceImpl implements UserService {
                     log.warn("User deletion failed: user not found - id={}", id);
                     return new ResourceNotFoundException("User", "id", id);
                 });
-        user.softDelete();
-        userRepository.save(user);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        userRepository.delete(user);
         log.debug("User soft deleted successfully: id={}", id);
     }
 

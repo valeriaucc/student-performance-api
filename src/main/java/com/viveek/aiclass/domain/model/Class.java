@@ -5,19 +5,25 @@ import com.viveek.aiclass.domain.model.enums.Semester;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.Where;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Class entity representing an academic class/course section.
  * Maps to the 'classes' table in the database.
+ * 
+ * Uses soft delete: DELETE operations will set deleted_at instead of removing the record.
+ * Soft-deleted records are automatically filtered from queries via @Where annotation.
  */
 @Entity
 @Table(name = "classes")
+@SQLDelete(sql = "UPDATE classes SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor

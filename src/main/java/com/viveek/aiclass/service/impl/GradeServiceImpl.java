@@ -242,8 +242,8 @@ public class GradeServiceImpl implements GradeService {
             throw new AccessDeniedException("You can only delete grades for students in your classes");
         }
         
-        grade.softDelete();
-        gradeRepository.save(grade);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        gradeRepository.delete(grade);
         log.debug("Grade soft deleted successfully: id={}", id);
     }
 }

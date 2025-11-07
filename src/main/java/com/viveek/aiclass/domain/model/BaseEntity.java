@@ -3,7 +3,7 @@ package com.viveek.aiclass.domain.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.Where;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,11 +16,20 @@ import java.util.UUID;
  * Base entity class providing common fields for all domain entities.
  * Includes UUID primary key, audit timestamps, and soft delete support.
  * 
- * Soft deletes are automatically filtered out from all queries unless explicitly included.
+ * <p><strong>Soft Delete Implementation:</strong></p>
+ * <ul>
+ *   <li>DELETE operations execute UPDATE setting deleted_at timestamp (via @SQLDelete on child entities)</li>
+ *   <li>All queries automatically filter WHERE deleted_at IS NULL (via @Where)</li>
+ *   <li>Soft-deleted records remain in database but are invisible to application</li>
+ *   <li>Use restore() method to undelete records</li>
+ * </ul>
+ * 
+ * @see org.hibernate.annotations.SQLDelete
+ * @see org.hibernate.annotations.Where
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
-@SQLRestriction("deleted_at IS NULL")
+@Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 public abstract class BaseEntity implements Serializable {

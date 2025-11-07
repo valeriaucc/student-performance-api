@@ -217,8 +217,8 @@ public class ClassServiceImpl implements ClassService {
             throw new AccessDeniedException("You can only delete your own classes");
         }
         
-        classEntity.softDelete();
-        classRepository.save(classEntity);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        classRepository.delete(classEntity);
         log.debug("Class soft deleted successfully: id={}", id);
     }
 }

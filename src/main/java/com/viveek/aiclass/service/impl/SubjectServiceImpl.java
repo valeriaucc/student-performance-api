@@ -115,8 +115,8 @@ public class SubjectServiceImpl implements SubjectService {
                     log.warn("Subject deletion failed: subject not found - id={}", id);
                     return new ResourceNotFoundException("Subject", "id", id);
                 });
-        subject.softDelete();
-        subjectRepository.save(subject);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        subjectRepository.delete(subject);
         log.debug("Subject soft deleted successfully: id={}", id);
     }
 

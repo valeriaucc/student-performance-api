@@ -219,8 +219,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new AccessDeniedException("You can only delete enrollments for your classes");
         }
         
-        enrollment.softDelete();
-        enrollmentRepository.save(enrollment);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        enrollmentRepository.delete(enrollment);
         log.debug("Enrollment soft deleted successfully: id={}", id);
     }
 }

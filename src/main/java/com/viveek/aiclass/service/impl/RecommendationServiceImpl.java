@@ -189,8 +189,8 @@ public class RecommendationServiceImpl implements RecommendationService {
             throw new AccessDeniedException("You can only delete recommendations for your classes");
         }
         
-        recommendation.softDelete();
-        recommendationRepository.save(recommendation);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        recommendationRepository.delete(recommendation);
         log.debug("Recommendation soft deleted successfully: id={}", id);
     }
 }
