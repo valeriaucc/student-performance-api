@@ -35,6 +35,9 @@ public class EnrollmentResponse {
     @Schema(description = "Student name", example = "John Doe")
     private String studentName;
     
+    @Schema(description = "Student email", example = "john.doe@example.com")
+    private String studentEmail;
+    
     @Schema(description = "Enrollment status", example = "ACTIVE")
     private EnrollmentStatus status;
     

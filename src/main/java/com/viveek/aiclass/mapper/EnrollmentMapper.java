@@ -22,6 +22,7 @@ public interface EnrollmentMapper {
     @Mapping(target = "className", expression = "java(buildClassName(enrollment))")
     @Mapping(source = "student.id", target = "studentId")
     @Mapping(source = "student.fullName", target = "studentName")
+    @Mapping(source = "student.email", target = "studentEmail")
     EnrollmentResponse toResponse(Enrollment enrollment);
 
     /**
