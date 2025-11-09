@@ -69,20 +69,39 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new BusinessException(ValidationMessages.INVALID_ROLE + ": User must be a STUDENT to enroll in a class");
         }
 
-        Optional<Enrollment> existingEnrollment = enrollmentRepository
+        // Check for existing active enrollment
+        Optional<Enrollment> existingActiveEnrollment = enrollmentRepository
                 .findByClassAndStudent(request.getClassId(), request.getStudentId());
         
-        if (existingEnrollment.isPresent()) {
-            log.warn("Enrollment failed: student already enrolled - studentId={}, classId={}, existingEnrollmentId={}", 
-                     request.getStudentId(), request.getClassId(), existingEnrollment.get().getId());
+        if (existingActiveEnrollment.isPresent()) {
+            log.warn("Enrollment failed: student already actively enrolled - studentId={}, classId={}, existingEnrollmentId={}", 
+                     request.getStudentId(), request.getClassId(), existingActiveEnrollment.get().getId());
             throw new BusinessException(ValidationMessages.DUPLICATE_ENROLLMENT);
         }
 
-        Enrollment enrollment = Enrollment.builder()
-                .classEntity(classEntity)
-                .student(student)
-                .status(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE)
-                .build();
+        // Check for soft-deleted enrollment (to prevent unique constraint violation)
+        Optional<Enrollment> existingDeletedEnrollment = enrollmentRepository
+                .findByClassAndStudentIncludingDeleted(request.getClassId(), request.getStudentId());
+        
+        Enrollment enrollment;
+        if (existingDeletedEnrollment.isPresent() && existingDeletedEnrollment.get().getDeletedAt() != null) {
+            // Restore soft-deleted enrollment instead of creating a new one
+            enrollment = existingDeletedEnrollment.get();
+            enrollment.setDeletedAt(null); // Un-delete the record
+            enrollment.setStatus(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE);
+            enrollment.setEnrolledAt(java.time.ZonedDateTime.now()); // Update enrollment time
+            log.info("Restoring soft-deleted enrollment: enrollmentId={}, studentId={}, classId={}", 
+                     enrollment.getId(), request.getStudentId(), request.getClassId());
+        } else {
+            // Create new enrollment
+            enrollment = Enrollment.builder()
+                    .classEntity(classEntity)
+                    .student(student)
+                    .status(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE)
+                    .build();
+            log.info("Creating new enrollment: studentId={}, classId={}", 
+                     request.getStudentId(), request.getClassId());
+        }
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
         log.debug("Student enrolled successfully: enrollmentId={}, status={}", 
