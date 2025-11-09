@@ -8,6 +8,8 @@ import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
 import com.viveek.aiclass.dto.response.PageResponse;
+import com.viveek.aiclass.security.AuthenticatedUser;
+import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.EnrollmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -78,23 +80,46 @@ public class EnrollmentController {
     @Operation(
         summary = "Get enrollments with pagination", 
         description = "Retrieves enrollments with filters and pagination (authenticated users). " +
-                      "⚠️ At least ONE filter parameter is REQUIRED: classId, studentId, or status. " +
+                      "STUDENTS: Can only view their own enrollments (classId filter not allowed, studentId is optional and will be forced to their own ID). " +
+                      "TEACHERS: Can use any filter (classId, studentId, or status). At least one filter is required. " +
                       "Use page and size parameters for pagination (default: page=0, size=20)."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Enrollments retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request - At least one filter parameter is required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request - Invalid filter parameters"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - Students cannot use classId filter")
     })
     public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getEnrollments(
-            @Parameter(description = "Filter by class ID (at least one filter required)", example = "4689b828-0cdb-4333-a9c8-48dce64e2409") 
+            @Parameter(description = "Filter by class ID (TEACHERS only)", example = "4689b828-0cdb-4333-a9c8-48dce64e2409") 
             @RequestParam(required = false) UUID classId,
-            @Parameter(description = "Filter by student ID (at least one filter required)", example = "1bb9ce94-66b2-4431-8b2b-724d569e2f24") 
+            @Parameter(description = "Filter by student ID (STUDENTS: will be forced to their own ID)", example = "1bb9ce94-66b2-4431-8b2b-724d569e2f24") 
             @RequestParam(required = false) UUID studentId,
-            @Parameter(description = "Filter by status: ACTIVE, DROPPED, or COMPLETED (at least one filter required)", example = "ACTIVE") 
+            @Parameter(description = "Filter by status: ACTIVE, DROPPED, or COMPLETED", example = "ACTIVE") 
             @RequestParam(required = false) EnrollmentStatus status,
             @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
         
+        // Get authenticated user to handle role-based filtering
+        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+        
+        // ✅ STUDENTS: Special handling - can only see their own enrollments
+        if (currentUser.isStudent()) {
+            // Students are NOT allowed to filter by classId (privacy/security)
+            if (classId != null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Students cannot filter enrollments by class. You can only view your own enrollments."));
+            }
+            
+            // Force studentId to be the current user's ID (ignore any provided studentId parameter)
+            UUID effectiveStudentId = currentUser.getUserId();
+            
+            // Get current student's enrollments (status filter is not implemented for students yet)
+            // Note: If status filtering is needed, it should be done in the repository layer
+            Page<EnrollmentResponse> enrollments = enrollmentService.getEnrollmentsByStudentId(effectiveStudentId, pageable);
+            return ResponseEntity.ok(ApiResponse.success(PageResponse.of(enrollments)));
+        }
+        
+        // ✅ TEACHERS/ADMINS: Can use any filter, but at least one is required
         Page<EnrollmentResponse> enrollments;
         if (classId != null) {
             enrollments = enrollmentService.getEnrollmentsByClassId(classId, pageable);
@@ -104,7 +129,7 @@ public class EnrollmentController {
             enrollments = enrollmentService.getEnrollmentsByStatus(status, pageable);
         } else {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Please provide at least one filter parameter"));
+                    .body(ApiResponse.error("Please provide at least one filter parameter (classId, studentId, or status)"));
         }
         
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(enrollments)));
