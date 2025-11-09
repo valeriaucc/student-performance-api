@@ -13,7 +13,6 @@ import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateEnrollmentRequest;
 import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
-import com.viveek.aiclass.domain.model.Enrollment;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.EnrollmentMapper;
@@ -132,7 +131,13 @@ class EnrollmentServiceTest {
             return EnrollmentResponse.builder()
                     .id(e.getId())
                     .classId(e.getClassEntity() != null ? e.getClassEntity().getId() : null)
+                    .className(e.getClassEntity() != null && e.getClassEntity().getSubject() != null ? 
+                        e.getClassEntity().getSubject().getName() + " - " + e.getClassEntity().getGroupCode() : null)
+                    .subjectCode(e.getClassEntity() != null && e.getClassEntity().getSubject() != null ? 
+                        e.getClassEntity().getSubject().getCode() : null)
                     .studentId(e.getStudent() != null ? e.getStudent().getId() : null)
+                    .studentName(e.getStudent() != null ? e.getStudent().getFullName() : null)
+                    .studentEmail(e.getStudent() != null ? e.getStudent().getEmail() : null)
                     .status(e.getStatus())
                     .build();
         });

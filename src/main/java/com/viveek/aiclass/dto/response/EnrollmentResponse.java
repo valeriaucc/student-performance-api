@@ -29,6 +29,9 @@ public class EnrollmentResponse {
     @Schema(description = "Class name (subject + group)", example = "CS101-A")
     private String className;
     
+    @Schema(description = "Subject code", example = "CS101")
+    private String subjectCode;
+    
     @Schema(description = "Student UUID", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
     private UUID studentId;
     
