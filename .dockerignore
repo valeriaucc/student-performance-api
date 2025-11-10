@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# Build outputs
+target/
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+
+# Test files
+src/test/
+
+# Documentation
+*.md
+!README.md
+
+# Environment files
+.env
+.env.local
+*.properties.template
+
+# Fly.io
+fly.toml
+
+# Postman
+postman-collection/
+
+# Scripts
+scripts/
+*.sh
+
+# Supabase migrations (if not needed in container)
+supabase/
+
+# Workspace files
+*.code-workspace
+
