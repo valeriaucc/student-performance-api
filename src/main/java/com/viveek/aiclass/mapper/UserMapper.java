@@ -40,3 +40,4 @@ public interface UserMapper {
     void updateEntityFromRequest(UpdateUserRequest request, @MappingTarget User user);
 }
 
+

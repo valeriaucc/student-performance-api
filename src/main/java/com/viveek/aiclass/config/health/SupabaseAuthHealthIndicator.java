@@ -52,3 +52,4 @@ public class SupabaseAuthHealthIndicator implements HealthIndicator {
     }
 }
 
+

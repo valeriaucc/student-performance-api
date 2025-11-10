@@ -40,3 +40,4 @@ public interface SubjectMapper {
     void updateEntityFromRequest(UpdateSubjectRequest request, @MappingTarget Subject subject);
 }
 
+
