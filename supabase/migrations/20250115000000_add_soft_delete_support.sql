@@ -35,3 +35,4 @@ COMMENT ON COLUMN enrollments.deleted_at IS 'Soft delete timestamp - NULL means 
 COMMENT ON COLUMN grades.deleted_at IS 'Soft delete timestamp - NULL means active, non-NULL means soft-deleted';
 COMMENT ON COLUMN ai_recommendations.deleted_at IS 'Soft delete timestamp - NULL means active, non-NULL means soft-deleted';
 
+
