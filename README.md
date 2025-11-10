@@ -9,10 +9,7 @@ A modern, enterprise-grade REST API for academic management and student performa
 - **Maven 3.6+** (or use included wrapper `./mvnw`)
 - **Supabase Account** with PostgreSQL database
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/ethx42/student-performance-api.git
-cd student-performance-api
+
 ```
 
 ### 2. Configure Database & Auth
