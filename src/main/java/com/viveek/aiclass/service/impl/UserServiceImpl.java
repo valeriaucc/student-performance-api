@@ -152,6 +152,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> searchUsers(String search, UserRole role, Pageable pageable) {
+        log.debug("Searching users: search={}, role={}, page={}, size={}", 
+                  search, role, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // Normalize search term: trim whitespace, set to null if empty
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        
+        return userRepository.searchUsers(searchTerm, role, pageable)
+                .map(userMapper::toResponse);
+    }
+
+    @Override
     public void deleteUser(UUID id) {
         log.info("Soft deleting user: id={}", id);
         User user = userRepository.findById(id)

@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -101,7 +100,8 @@ public class UserController {
     @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
     @Operation(
         summary = "Get all users with pagination", 
-        description = "Retrieves all users with optional role filter and pagination (TEACHER only). " +
+        description = "Retrieves all users with optional search and role filters and pagination (TEACHER only). " +
+                      "Search filters by fullName or email (case-insensitive). " +
                       "Filter by role is OPTIONAL - fetches all users if no role specified. " +
                       "Use page and size parameters for pagination (default: page=0, size=20)."
     )
@@ -111,12 +111,25 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - TEACHER role required")
     })
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
+            @Parameter(description = "Search term to filter by fullName or email (case-insensitive, optional)", example = "va") 
+            @RequestParam(required = false) String search,
             @Parameter(description = "Filter by role: 'teacher' or 'student' (optional - fetches all if not specified)", example = "student") 
             @RequestParam(required = false) UserRole role,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<UserResponse> users = role != null ? 
-                userService.getUsersByRole(role, pageable) : 
-                userService.getAllUsers(pageable);
+        Page<UserResponse> users;
+        
+        // If search parameter is provided (even if empty), use search method
+        // This allows combining search with role filter
+        if (search != null) {
+            users = userService.searchUsers(search, role, pageable);
+        } else if (role != null) {
+            // If only role is provided, use role filter
+            users = userService.getUsersByRole(role, pageable);
+        } else {
+            // If neither search nor role, get all users
+            users = userService.getAllUsers(pageable);
+        }
+        
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(users)));
     }
 
