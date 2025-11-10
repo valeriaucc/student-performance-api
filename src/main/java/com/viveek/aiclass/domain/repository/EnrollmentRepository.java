@@ -78,6 +78,19 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
             @Param("studentId") UUID studentId
     );
 
+    /**
+     * Find enrollment by class and student, including soft-deleted records.
+     * Uses native SQL to bypass @Where clause filtering.
+     * Used to prevent duplicate enrollment attempts when a soft-deleted record exists.
+     */
+    @Query(value = "SELECT * FROM enrollments e " +
+           "WHERE e.class_id = :classId AND e.student_user_id = :studentId",
+           nativeQuery = true)
+    Optional<Enrollment> findByClassAndStudentIncludingDeleted(
+            @Param("classId") UUID classId,
+            @Param("studentId") UUID studentId
+    );
+
     @Query("SELECT e FROM Enrollment e " +
            "LEFT JOIN FETCH e.classEntity c " +
            "LEFT JOIN FETCH c.subject " +

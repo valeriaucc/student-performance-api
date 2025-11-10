@@ -29,11 +29,17 @@ public class EnrollmentResponse {
     @Schema(description = "Class name (subject + group)", example = "CS101-A")
     private String className;
     
+    @Schema(description = "Subject code", example = "CS101")
+    private String subjectCode;
+    
     @Schema(description = "Student UUID", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
     private UUID studentId;
     
     @Schema(description = "Student name", example = "John Doe")
     private String studentName;
+    
+    @Schema(description = "Student email", example = "john.doe@example.com")
+    private String studentEmail;
     
     @Schema(description = "Enrollment status", example = "ACTIVE")
     private EnrollmentStatus status;

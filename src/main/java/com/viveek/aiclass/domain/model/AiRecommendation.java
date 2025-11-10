@@ -4,18 +4,24 @@ import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.Where;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * AI Recommendation entity representing AI-generated recommendations for users.
  * Maps to the 'ai_recommendations' table in the database.
+ * 
+ * Uses soft delete: DELETE operations will set deleted_at instead of removing the record.
+ * Soft-deleted records are automatically filtered from queries via @Where annotation.
  */
 @Entity
 @Table(name = "ai_recommendations")
+@SQLDelete(sql = "UPDATE ai_recommendations SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -83,6 +83,9 @@ public class SecurityConfig {
                     "/actuator/info"
                 ).permitAll()
                 
+                // CORS preflight requests (OPTIONS) must be allowed without authentication
+                .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
+                
                 // User creation endpoint - allow authenticated users to create their profile
                 .requestMatchers(HttpMethod.POST, "/api/users").authenticated()
                 
@@ -123,8 +126,9 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         // Create secret key from the JWT secret string
+        // Use UTF-8 encoding explicitly to handle special characters correctly
         SecretKey secretKey = new SecretKeySpec(
-            jwtSecret.getBytes(),
+            jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8),
             "HmacSHA256"
         );
         
@@ -166,13 +170,19 @@ public class SecurityConfig {
             HttpMethod.OPTIONS.name()
         ));
         
-        // Allow common headers including Authorization
+        // Allow all headers (needed for various frontend frameworks and CORS preflight)
+        // Note: When allowCredentials is true, we cannot use "*" - must list headers explicitly
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",
             "Content-Type",
             "Accept",
             "X-Requested-With",
-            "Cache-Control"
+            "Cache-Control",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "X-CSRF-TOKEN",
+            "X-Auth-Token"
         ));
         
         // Allow credentials (cookies, authorization headers)

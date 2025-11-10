@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
 import com.viveek.aiclass.dto.request.CreateRecommendationRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
@@ -28,7 +29,7 @@ import java.util.UUID;
  * REST controller for AI Recommendation management operations.
  */
 @RestController
-@RequestMapping("/api/recommendations")
+@RequestMapping(ApiVersions.V1 + "/recommendations")
 @RequiredArgsConstructor
 @Tag(name = "Recommendations", description = "AI Recommendation management APIs")
 public class RecommendationController {

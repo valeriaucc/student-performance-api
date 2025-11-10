@@ -2,17 +2,23 @@ package com.viveek.aiclass.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.UUID;
 
 /**
  * Grade entity representing a student's grade/score in a class.
  * Maps to the 'grades' table in the database.
+ * 
+ * Uses soft delete: DELETE operations will set deleted_at instead of removing the record.
+ * Soft-deleted records are automatically filtered from queries via @Where annotation.
  */
 @Entity
 @Table(name = "grades")
+@SQLDelete(sql = "UPDATE grades SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor

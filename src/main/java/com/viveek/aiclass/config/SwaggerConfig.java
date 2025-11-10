@@ -1,5 +1,6 @@
 package com.viveek.aiclass.config;
 
+import com.viveek.aiclass.api.DeprecationInterceptor;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -8,15 +9,27 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
 @Configuration
-public class SwaggerConfig {
+@RequiredArgsConstructor
+public class SwaggerConfig implements WebMvcConfigurer {
 
     private static final String SECURITY_SCHEME_NAME = "Bearer Authentication";
+    
+    private final DeprecationInterceptor deprecationInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(deprecationInterceptor)
+                .addPathPatterns("/api/**");
+    }
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -25,6 +38,30 @@ public class SwaggerConfig {
                         .title("AIClass API")
                         .description("""
                                 API for AIClass academic management platform with student performance analytics.
+                                
+                                ## 🎉 What's New in v2.0 (Phase 3)
+                                
+                                ### API Versioning
+                                - All endpoints now use `/api/v1/*` path prefix for semantic versioning
+                                - Deprecated endpoints include `X-API-Deprecation` and `Sunset` headers
+                                - Migration guidance provided via `Link` headers
+                                
+                                ### Performance Improvements
+                                - Optimized object mapping with MapStruct
+                                - Database query optimization with strategic indexes
+                                - Enhanced connection pooling and caching
+                                
+                                ### Monitoring & Observability
+                                - **Health Checks**: `/actuator/health` - Application and dependency health status
+                                - **Metrics**: `/actuator/metrics` - Application metrics for monitoring
+                                - **Prometheus**: `/actuator/prometheus` - Prometheus-compatible metrics export
+                                - **Info**: `/actuator/info` - Application version and build information
+                                - Custom business metrics tracked: user creation, enrollments, grade submissions
+                                
+                                ### Soft Delete Support
+                                - Entities are soft-deleted (marked with `deletedAt` timestamp)
+                                - Automatically filtered from all queries
+                                - No breaking changes to API responses
                                 
                                 ## Authentication
                                 This API uses **JWT Bearer tokens** from Supabase Auth.
@@ -39,6 +76,16 @@ public class SwaggerConfig {
                                 ### Role-Based Access:
                                 - **TEACHER**: Full access to create/modify classes, grades, and view all data
                                 - **STUDENT**: View own enrollments, grades, and recommendations
+                                
+                                ## Pagination
+                                Most list endpoints support pagination with query parameters:
+                                - `page`: Page number (0-indexed, default: 0)
+                                - `size`: Items per page (default: 20, max: 100)
+                                
+                                ## Rate Limiting
+                                API requests are rate-limited to prevent abuse:
+                                - **Authenticated users**: 100 requests per minute
+                                - **Unauthenticated users**: 20 requests per minute
                                 """)
                         .version("2.0.0")
                         .contact(new Contact()

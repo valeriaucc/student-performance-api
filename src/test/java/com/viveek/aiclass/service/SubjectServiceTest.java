@@ -6,6 +6,7 @@ import com.viveek.aiclass.dto.request.CreateSubjectRequest;
 import com.viveek.aiclass.dto.request.UpdateSubjectRequest;
 import com.viveek.aiclass.dto.response.SubjectResponse;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.mapper.SubjectMapper;
 import com.viveek.aiclass.service.impl.SubjectServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,10 +34,14 @@ class SubjectServiceTest {
     @Mock
     private SubjectRepository subjectRepository;
 
+    @Mock
+    private SubjectMapper subjectMapper;
+
     @InjectMocks
     private SubjectServiceImpl subjectService;
 
     private Subject testSubject;
+    private SubjectResponse testSubjectResponse;
     private UUID subjectId;
 
     @BeforeEach
@@ -48,6 +53,13 @@ class SubjectServiceTest {
                 .description("Advanced Mathematics")
                 .build();
         ReflectionTestUtils.setField(testSubject, "id", subjectId);
+        
+        testSubjectResponse = SubjectResponse.builder()
+                .id(subjectId)
+                .name(testSubject.getName())
+                .code(testSubject.getCode())
+                .description(testSubject.getDescription())
+                .build();
     }
 
     @Test
@@ -64,14 +76,25 @@ class SubjectServiceTest {
                 .description(request.getDescription())
                 .build();
         ReflectionTestUtils.setField(savedSubject, "id", UUID.randomUUID());
+        
+        SubjectResponse expectedResponse = SubjectResponse.builder()
+                .id(savedSubject.getId())
+                .name(savedSubject.getName())
+                .code(savedSubject.getCode())
+                .description(savedSubject.getDescription())
+                .build();
 
+        when(subjectMapper.toEntity(request)).thenReturn(savedSubject);
         when(subjectRepository.save(any(Subject.class))).thenReturn(savedSubject);
+        when(subjectMapper.toResponse(savedSubject)).thenReturn(expectedResponse);
 
         SubjectResponse response = subjectService.createSubject(request);
 
         assertNotNull(response);
         assertEquals(savedSubject.getId(), response.getId());
+        verify(subjectMapper).toEntity(request);
         verify(subjectRepository).save(any(Subject.class));
+        verify(subjectMapper).toResponse(savedSubject);
     }
 
     @Test
@@ -82,21 +105,25 @@ class SubjectServiceTest {
 
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(testSubject));
         when(subjectRepository.save(any(Subject.class))).thenReturn(testSubject);
+        when(subjectMapper.toResponse(testSubject)).thenReturn(testSubjectResponse);
 
         SubjectResponse response = subjectService.updateSubject(subjectId, request);
 
         assertNotNull(response);
         verify(subjectRepository).save(testSubject);
+        verify(subjectMapper).toResponse(testSubject);
     }
 
     @Test
     void getSubjectById_WhenExists_ShouldReturnSubject() {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(testSubject));
+        when(subjectMapper.toResponse(testSubject)).thenReturn(testSubjectResponse);
 
         SubjectResponse response = subjectService.getSubjectById(subjectId);
 
         assertNotNull(response);
         assertEquals(subjectId, response.getId());
+        verify(subjectMapper).toResponse(testSubject);
     }
 
     @Test
@@ -111,11 +138,13 @@ class SubjectServiceTest {
     void getSubjectByCode_WhenExists_ShouldReturnSubject() {
         String code = "MATH101";
         when(subjectRepository.findByCode(code)).thenReturn(Optional.of(testSubject));
+        when(subjectMapper.toResponse(testSubject)).thenReturn(testSubjectResponse);
 
         SubjectResponse response = subjectService.getSubjectByCode(code);
 
         assertNotNull(response);
         assertEquals(code, response.getCode());
+        verify(subjectMapper).toResponse(testSubject);
     }
 
     @Test
@@ -124,28 +153,32 @@ class SubjectServiceTest {
         Page<Subject> subjectPage = new PageImpl<>(List.of(testSubject), pageable, 1);
         
         when(subjectRepository.findAll(pageable)).thenReturn(subjectPage);
+        when(subjectMapper.toResponse(any(Subject.class))).thenReturn(testSubjectResponse);
 
         Page<SubjectResponse> response = subjectService.getAllSubjects(pageable);
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
+        verify(subjectMapper).toResponse(any(Subject.class));
     }
 
     @Test
     void deleteSubject_WhenExists_ShouldDeleteSubject() {
-        when(subjectRepository.existsById(subjectId)).thenReturn(true);
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(testSubject));
+        when(subjectRepository.save(any(Subject.class))).thenReturn(testSubject);
 
         subjectService.deleteSubject(subjectId);
 
-        verify(subjectRepository).deleteById(subjectId);
+        verify(subjectRepository).save(any(Subject.class));
+        assertNotNull(testSubject.getDeletedAt());
     }
 
     @Test
     void deleteSubject_WhenNotFound_ShouldThrowException() {
-        when(subjectRepository.existsById(subjectId)).thenReturn(false);
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> subjectService.deleteSubject(subjectId));
-        verify(subjectRepository, never()).deleteById(any());
+        verify(subjectRepository, never()).save(any());
     }
 }

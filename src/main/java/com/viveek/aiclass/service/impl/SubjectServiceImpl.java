@@ -7,7 +7,7 @@ import com.viveek.aiclass.dto.request.UpdateSubjectRequest;
 import com.viveek.aiclass.dto.response.SubjectResponse;
 import com.viveek.aiclass.exception.ResourceAlreadyExistsException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.SubjectMapper;
 import com.viveek.aiclass.service.SubjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 public class SubjectServiceImpl implements SubjectService {
 
     private final SubjectRepository subjectRepository;
+    private final SubjectMapper subjectMapper;
 
     @Override
     public SubjectResponse createSubject(CreateSubjectRequest request) {
@@ -40,10 +41,10 @@ public class SubjectServiceImpl implements SubjectService {
             throw new ResourceAlreadyExistsException("Subject", "code", request.getCode());
         }
 
-        Subject subject = EntityMapper.toSubject(request);
+        Subject subject = subjectMapper.toEntity(request);
         Subject savedSubject = subjectRepository.save(subject);
         log.debug("Subject created successfully: id={}, code={}", savedSubject.getId(), savedSubject.getCode());
-        return EntityMapper.toSubjectResponse(savedSubject);
+        return subjectMapper.toResponse(savedSubject);
     }
 
     @Override
@@ -70,7 +71,7 @@ public class SubjectServiceImpl implements SubjectService {
 
         Subject updatedSubject = subjectRepository.save(subject);
         log.debug("Subject updated successfully: id={}", updatedSubject.getId());
-        return EntityMapper.toSubjectResponse(updatedSubject);
+        return subjectMapper.toResponse(updatedSubject);
     }
 
     @Override
@@ -78,7 +79,7 @@ public class SubjectServiceImpl implements SubjectService {
     public SubjectResponse getSubjectById(UUID id) {
         Subject subject = subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", "id", id));
-        return EntityMapper.toSubjectResponse(subject);
+        return subjectMapper.toResponse(subject);
     }
 
     @Override
@@ -86,7 +87,7 @@ public class SubjectServiceImpl implements SubjectService {
     public SubjectResponse getSubjectByCode(String code) {
         Subject subject = subjectRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", "code", code));
-        return EntityMapper.toSubjectResponse(subject);
+        return subjectMapper.toResponse(subject);
     }
 
     @Override
@@ -94,7 +95,7 @@ public class SubjectServiceImpl implements SubjectService {
     public List<SubjectResponse> getAllSubjects() {
         log.debug("Fetching all subjects (non-paginated)");
         return subjectRepository.findAll().stream()
-                .map(EntityMapper::toSubjectResponse)
+                .map(subjectMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -103,18 +104,20 @@ public class SubjectServiceImpl implements SubjectService {
     public Page<SubjectResponse> getAllSubjects(Pageable pageable) {
         log.debug("Fetching subjects with pagination: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
         return subjectRepository.findAll(pageable)
-                .map(EntityMapper::toSubjectResponse);
+                .map(subjectMapper::toResponse);
     }
 
     @Override
     public void deleteSubject(UUID id) {
-        log.info("Deleting subject: id={}", id);
-        if (!subjectRepository.existsById(id)) {
-            log.warn("Subject deletion failed: subject not found - id={}", id);
-            throw new ResourceNotFoundException("Subject", "id", id);
-        }
-        subjectRepository.deleteById(id);
-        log.debug("Subject deleted successfully: id={}", id);
+        log.info("Soft deleting subject: id={}", id);
+        Subject subject = subjectRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Subject deletion failed: subject not found - id={}", id);
+                    return new ResourceNotFoundException("Subject", "id", id);
+                });
+        // Use repository.delete() to trigger @SQLDelete annotation
+        subjectRepository.delete(subject);
+        log.debug("Subject soft deleted successfully: id={}", id);
     }
 
     @Override

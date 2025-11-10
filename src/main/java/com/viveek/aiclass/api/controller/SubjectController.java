@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.dto.request.CreateSubjectRequest;
 import com.viveek.aiclass.dto.request.UpdateSubjectRequest;
@@ -29,7 +30,7 @@ import java.util.UUID;
  * REST controller for Subject management operations.
  */
 @RestController
-@RequestMapping("/api/subjects")
+@RequestMapping(ApiVersions.V1 + "/subjects")
 @RequiredArgsConstructor
 @Tag(name = "Subjects", description = "Subject management APIs")
 public class SubjectController {

@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../student-performance"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic"
+	}
+}

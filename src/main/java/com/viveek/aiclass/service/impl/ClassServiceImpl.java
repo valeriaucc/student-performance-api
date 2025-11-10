@@ -15,7 +15,7 @@ import com.viveek.aiclass.dto.request.UpdateClassRequest;
 import com.viveek.aiclass.dto.response.ClassResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.ClassMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.ClassService;
@@ -44,6 +44,7 @@ public class ClassServiceImpl implements ClassService {
     private final SubjectRepository subjectRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final ClassMapper classMapper;
 
     @Override
     public ClassResponse createClass(CreateClassRequest request) {
@@ -72,7 +73,7 @@ public class ClassServiceImpl implements ClassService {
 
         Class savedClass = classRepository.save(classEntity);
         log.debug("Class created successfully: id={}, groupCode={}", savedClass.getId(), savedClass.getGroupCode());
-        return EntityMapper.toClassResponse(savedClass);
+        return classMapper.toResponse(savedClass);
     }
 
     @Override
@@ -121,7 +122,7 @@ public class ClassServiceImpl implements ClassService {
 
         Class updatedClass = classRepository.save(classEntity);
         log.debug("Class updated successfully: id={}", updatedClass.getId());
-        return EntityMapper.toClassResponse(updatedClass);
+        return classMapper.toResponse(updatedClass);
     }
 
     @Override
@@ -149,7 +150,7 @@ public class ClassServiceImpl implements ClassService {
             }
         }
         
-        return EntityMapper.toClassResponse(classEntity);
+        return classMapper.toResponse(classEntity);
     }
 
     @Override
@@ -168,7 +169,7 @@ public class ClassServiceImpl implements ClassService {
             // Students only see classes they're enrolled in
             log.debug("Filtering classes for student: {} with pagination", currentUser.getUserId());
             return classRepository.findClassesByStudentId(currentUser.getUserId(), pageable)
-                    .map(EntityMapper::toClassResponse);
+                    .map(classMapper::toResponse);
         }
         
         throw new AccessDeniedException("Invalid user role for accessing classes");
@@ -180,7 +181,7 @@ public class ClassServiceImpl implements ClassService {
         log.debug("Fetching classes by teacher with pagination: teacherId={}, page={}, size={}", 
                   teacherId, pageable.getPageNumber(), pageable.getPageSize());
         return classRepository.findByTeacherId(teacherId, pageable)
-                .map(EntityMapper::toClassResponse);
+                .map(classMapper::toResponse);
     }
 
     @Override
@@ -189,7 +190,7 @@ public class ClassServiceImpl implements ClassService {
         log.debug("Fetching classes by subject with pagination: subjectId={}, page={}, size={}", 
                   subjectId, pageable.getPageNumber(), pageable.getPageSize());
         return classRepository.findBySubjectId(subjectId, pageable)
-                .map(EntityMapper::toClassResponse);
+                .map(classMapper::toResponse);
     }
 
     @Override
@@ -198,12 +199,12 @@ public class ClassServiceImpl implements ClassService {
         log.debug("Fetching classes by year and semester with pagination: year={}, semester={}, page={}, size={}", 
                   year, semester, pageable.getPageNumber(), pageable.getPageSize());
         return classRepository.findByYearAndSemester(year, semester, pageable)
-                .map(EntityMapper::toClassResponse);
+                .map(classMapper::toResponse);
     }
 
     @Override
     public void deleteClass(UUID id) {
-        log.info("Deleting class: id={}", id);
+        log.info("Soft deleting class: id={}", id);
         
         Class classEntity = classRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
@@ -216,8 +217,9 @@ public class ClassServiceImpl implements ClassService {
             throw new AccessDeniedException("You can only delete your own classes");
         }
         
-        classRepository.deleteById(id);
-        log.debug("Class deleted successfully: id={}", id);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        classRepository.delete(classEntity);
+        log.debug("Class soft deleted successfully: id={}", id);
     }
 }
 

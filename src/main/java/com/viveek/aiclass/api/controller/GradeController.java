@@ -1,5 +1,6 @@
 package com.viveek.aiclass.api.controller;
 
+import com.viveek.aiclass.api.ApiVersions;
 import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.dto.request.CreateGradeRequest;
 import com.viveek.aiclass.dto.request.UpdateGradeRequest;
@@ -29,7 +30,7 @@ import java.util.UUID;
  * REST controller for Grade management operations.
  */
 @RestController
-@RequestMapping("/api/grades")
+@RequestMapping(ApiVersions.V1 + "/grades")
 @RequiredArgsConstructor
 @Tag(name = "Grades", description = "Grade management APIs")
 public class GradeController {

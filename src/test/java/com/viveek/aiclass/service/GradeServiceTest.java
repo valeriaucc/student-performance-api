@@ -15,8 +15,10 @@ import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateGradeRequest;
 import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.GradeResponse;
+import com.viveek.aiclass.domain.model.Grade;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
+import com.viveek.aiclass.mapper.GradeMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.impl.GradeServiceImpl;
@@ -58,6 +60,9 @@ class GradeServiceTest {
 
     @Mock
     private EnrollmentRepository enrollmentRepository;
+
+    @Mock
+    private GradeMapper gradeMapper;
 
     @InjectMocks
     private GradeServiceImpl gradeService;
@@ -137,6 +142,19 @@ class GradeServiceTest {
 
         // Mock SecurityContextHelper
         securityContextHelperMock = mockStatic(SecurityContextHelper.class);
+        
+        // Setup default mapper behavior (lenient since not all tests use it)
+        lenient().when(gradeMapper.toResponse(any(Grade.class))).thenAnswer(invocation -> {
+            Grade g = invocation.getArgument(0);
+            return GradeResponse.builder()
+                    .id(g.getId())
+                    .classId(g.getClassEntity() != null ? g.getClassEntity().getId() : null)
+                    .studentId(g.getStudent() != null ? g.getStudent().getId() : null)
+                    .assessmentKind(g.getAssessmentKind())
+                    .score(g.getScore())
+                    .maxScore(g.getMaxScore())
+                    .build();
+        });
     }
 
     @AfterEach
@@ -435,10 +453,12 @@ class GradeServiceTest {
         ReflectionTestUtils.setField(grade, "id", gradeId);
         
         when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade));
+        when(gradeRepository.save(any(Grade.class))).thenReturn(grade);
 
         gradeService.deleteGrade(gradeId);
 
-        verify(gradeRepository).deleteById(gradeId);
+        verify(gradeRepository).save(any(Grade.class));
+        assertNotNull(grade.getDeletedAt());
     }
 
     @Test
@@ -448,6 +468,6 @@ class GradeServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> gradeService.deleteGrade(gradeId));
-        verify(gradeRepository, never()).deleteById(any());
+        verify(gradeRepository, never()).save(any());
     }
 }

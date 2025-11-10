@@ -8,7 +8,7 @@ import com.viveek.aiclass.dto.request.UpdateUserRequest;
 import com.viveek.aiclass.dto.response.UserResponse;
 import com.viveek.aiclass.exception.ResourceAlreadyExistsException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.UserMapper;
 import com.viveek.aiclass.service.UserService;
 import com.viveek.aiclass.util.EmailUtils;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
@@ -51,10 +52,10 @@ public class UserServiceImpl implements UserService {
             throw new ResourceAlreadyExistsException("User", "authUserId", request.getAuthUserId());
         }
 
-        User user = EntityMapper.toUser(request);
+        User user = userMapper.toEntity(request);
         User savedUser = userRepository.save(user);
         log.debug("User created successfully: id={}, email={}", savedUser.getId(), savedUser.getEmail());
-        return EntityMapper.toUserResponse(savedUser);
+        return userMapper.toResponse(savedUser);
     }
 
     @Override
@@ -87,7 +88,7 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(user);
         log.debug("User updated successfully: id={}", updatedUser.getId());
-        return EntityMapper.toUserResponse(updatedUser);
+        return userMapper.toResponse(updatedUser);
     }
 
     @Override
@@ -95,7 +96,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-        return EntityMapper.toUserResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -103,7 +104,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserByAuthUserId(UUID authUserId) {
         User user = userRepository.findByAuthUserId(authUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "authUserId", authUserId));
-        return EntityMapper.toUserResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -112,7 +113,7 @@ public class UserServiceImpl implements UserService {
         String normalizedEmail = EmailUtils.normalizeEmail(email);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", normalizedEmail));
-        return EntityMapper.toUserResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -120,7 +121,7 @@ public class UserServiceImpl implements UserService {
     public List<UserResponse> getAllUsers() {
         log.debug("Fetching all users (non-paginated)");
         return userRepository.findAll().stream()
-                .map(EntityMapper::toUserResponse)
+                .map(userMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -129,7 +130,7 @@ public class UserServiceImpl implements UserService {
     public Page<UserResponse> getAllUsers(Pageable pageable) {
         log.debug("Fetching users with pagination: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
         return userRepository.findAll(pageable)
-                .map(EntityMapper::toUserResponse);
+                .map(userMapper::toResponse);
     }
 
     @Override
@@ -137,7 +138,7 @@ public class UserServiceImpl implements UserService {
     public List<UserResponse> getUsersByRole(UserRole role) {
         log.debug("Fetching users by role: role={} (non-paginated)", role);
         return userRepository.findByRole(role).stream()
-                .map(EntityMapper::toUserResponse)
+                .map(userMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -147,18 +148,33 @@ public class UserServiceImpl implements UserService {
         log.debug("Fetching users by role with pagination: role={}, page={}, size={}", 
                   role, pageable.getPageNumber(), pageable.getPageSize());
         return userRepository.findByRole(role, pageable)
-                .map(EntityMapper::toUserResponse);
+                .map(userMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> searchUsers(String search, UserRole role, Pageable pageable) {
+        log.debug("Searching users: search={}, role={}, page={}, size={}", 
+                  search, role, pageable.getPageNumber(), pageable.getPageSize());
+        
+        // Normalize search term: trim whitespace, set to null if empty
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        
+        return userRepository.searchUsers(searchTerm, role, pageable)
+                .map(userMapper::toResponse);
     }
 
     @Override
     public void deleteUser(UUID id) {
-        log.info("Deleting user: id={}", id);
-        if (!userRepository.existsById(id)) {
-            log.warn("User deletion failed: user not found - id={}", id);
-            throw new ResourceNotFoundException("User", "id", id);
-        }
-        userRepository.deleteById(id);
-        log.debug("User deleted successfully: id={}", id);
+        log.info("Soft deleting user: id={}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("User deletion failed: user not found - id={}", id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
+        // Use repository.delete() to trigger @SQLDelete annotation
+        userRepository.delete(user);
+        log.debug("User soft deleted successfully: id={}", id);
     }
 
     @Override

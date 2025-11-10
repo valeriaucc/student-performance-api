@@ -33,6 +33,16 @@ public interface UserService {
 
     Page<UserResponse> getUsersByRole(UserRole role, Pageable pageable);
 
+    /**
+     * Search users by search term (name or email) with optional role filter.
+     * 
+     * @param search Search term to match against fullName or email (case-insensitive)
+     * @param role Optional role filter
+     * @param pageable Pagination parameters
+     * @return Page of users matching the search criteria
+     */
+    Page<UserResponse> searchUsers(String search, UserRole role, Pageable pageable);
+
     void deleteUser(UUID id);
 
     boolean existsByEmail(String email);

@@ -14,7 +14,7 @@ import com.viveek.aiclass.dto.request.UpdateEnrollmentRequest;
 import com.viveek.aiclass.dto.response.EnrollmentResponse;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
-import com.viveek.aiclass.mapper.EntityMapper;
+import com.viveek.aiclass.mapper.EnrollmentMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.EnrollmentService;
@@ -43,6 +43,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final EnrollmentMapper enrollmentMapper;
 
     @Override
     public EnrollmentResponse enrollStudent(CreateEnrollmentRequest request) {
@@ -68,25 +69,44 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new BusinessException(ValidationMessages.INVALID_ROLE + ": User must be a STUDENT to enroll in a class");
         }
 
-        Optional<Enrollment> existingEnrollment = enrollmentRepository
+        // Check for existing active enrollment
+        Optional<Enrollment> existingActiveEnrollment = enrollmentRepository
                 .findByClassAndStudent(request.getClassId(), request.getStudentId());
         
-        if (existingEnrollment.isPresent()) {
-            log.warn("Enrollment failed: student already enrolled - studentId={}, classId={}, existingEnrollmentId={}", 
-                     request.getStudentId(), request.getClassId(), existingEnrollment.get().getId());
+        if (existingActiveEnrollment.isPresent()) {
+            log.warn("Enrollment failed: student already actively enrolled - studentId={}, classId={}, existingEnrollmentId={}", 
+                     request.getStudentId(), request.getClassId(), existingActiveEnrollment.get().getId());
             throw new BusinessException(ValidationMessages.DUPLICATE_ENROLLMENT);
         }
 
-        Enrollment enrollment = Enrollment.builder()
-                .classEntity(classEntity)
-                .student(student)
-                .status(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE)
-                .build();
+        // Check for soft-deleted enrollment (to prevent unique constraint violation)
+        Optional<Enrollment> existingDeletedEnrollment = enrollmentRepository
+                .findByClassAndStudentIncludingDeleted(request.getClassId(), request.getStudentId());
+        
+        Enrollment enrollment;
+        if (existingDeletedEnrollment.isPresent() && existingDeletedEnrollment.get().getDeletedAt() != null) {
+            // Restore soft-deleted enrollment instead of creating a new one
+            enrollment = existingDeletedEnrollment.get();
+            enrollment.setDeletedAt(null); // Un-delete the record
+            enrollment.setStatus(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE);
+            enrollment.setEnrolledAt(java.time.ZonedDateTime.now()); // Update enrollment time
+            log.info("Restoring soft-deleted enrollment: enrollmentId={}, studentId={}, classId={}", 
+                     enrollment.getId(), request.getStudentId(), request.getClassId());
+        } else {
+            // Create new enrollment
+            enrollment = Enrollment.builder()
+                    .classEntity(classEntity)
+                    .student(student)
+                    .status(request.getStatus() != null ? request.getStatus() : EnrollmentStatus.ACTIVE)
+                    .build();
+            log.info("Creating new enrollment: studentId={}, classId={}", 
+                     request.getStudentId(), request.getClassId());
+        }
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
         log.debug("Student enrolled successfully: enrollmentId={}, status={}", 
                   savedEnrollment.getId(), savedEnrollment.getStatus());
-        return EntityMapper.toEnrollmentResponse(savedEnrollment);
+        return enrollmentMapper.toResponse(savedEnrollment);
     }
 
     @Override
@@ -109,7 +129,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Enrollment updatedEnrollment = enrollmentRepository.save(enrollment);
         log.debug("Enrollment updated successfully: id={}, status={}", 
                   updatedEnrollment.getId(), updatedEnrollment.getStatus());
-        return EntityMapper.toEnrollmentResponse(updatedEnrollment);
+        return enrollmentMapper.toResponse(updatedEnrollment);
     }
 
     @Override
@@ -137,7 +157,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             }
         }
         
-        return EntityMapper.toEnrollmentResponse(enrollment);
+        return enrollmentMapper.toResponse(enrollment);
     }
 
     @Override
@@ -163,7 +183,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         }
         
         return enrollmentRepository.findByClassEntityId(classId, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override
@@ -187,11 +207,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     studentId, 
                     currentUser.getUserId(), 
                     pageable
-            ).map(EntityMapper::toEnrollmentResponse);
+            ).map(enrollmentMapper::toResponse);
         }
         
         return enrollmentRepository.findByStudentId(studentId, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override
@@ -200,12 +220,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         log.debug("Fetching enrollments by status with pagination: status={}, page={}, size={}", 
                   status, pageable.getPageNumber(), pageable.getPageSize());
         return enrollmentRepository.findByStatus(status, pageable)
-                .map(EntityMapper::toEnrollmentResponse);
+                .map(enrollmentMapper::toResponse);
     }
 
     @Override
     public void deleteEnrollment(UUID id) {
-        log.info("Deleting enrollment: id={}", id);
+        log.info("Soft deleting enrollment: id={}", id);
         
         Enrollment enrollment = enrollmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
@@ -218,8 +238,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new AccessDeniedException("You can only delete enrollments for your classes");
         }
         
-        enrollmentRepository.deleteById(id);
-        log.debug("Enrollment deleted successfully: id={}", id);
+        // Use repository.delete() to trigger @SQLDelete annotation
+        enrollmentRepository.delete(enrollment);
+        log.debug("Enrollment soft deleted successfully: id={}", id);
     }
 }
 
