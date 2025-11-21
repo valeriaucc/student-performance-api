@@ -29,7 +29,7 @@ A modern REST API for academic management and student performance analytics buil
 
 ### Step 1: Clone Repository
 ```bash
-git clone https://github.com/ethx42/student-performance-api.git
+git clone https://github.com/valeriaucc/student-performance-api.git
 cd student-performance-api
 ```
 
