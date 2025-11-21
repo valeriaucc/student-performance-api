@@ -80,6 +80,72 @@ public class ClassPerformanceData {
     private String feedbackSummary;
 
     /**
+     * Performance trend for the class (improving, declining, stable)
+     * Based on comparing recent assessments vs earlier ones
+     */
+    private String classPerformanceTrend;
+
+    /**
+     * Minimum percentage score in the class
+     */
+    private BigDecimal minPercentage;
+
+    /**
+     * Maximum percentage score in the class
+     */
+    private BigDecimal maxPercentage;
+
+    /**
+     * Median percentage score in the class
+     */
+    private BigDecimal medianPercentage;
+
+    /**
+     * Standard deviation of percentages (measures variability/consistency)
+     */
+    private BigDecimal standardDeviation;
+
+    /**
+     * Number of students at risk (percentage < 60%)
+     */
+    private Integer studentsAtRisk;
+
+    /**
+     * Percentage of students at risk
+     */
+    private BigDecimal atRiskPercentage;
+
+    /**
+     * Number of students performing well (percentage >= 85%)
+     */
+    private Integer studentsPerformingWell;
+
+    /**
+     * Best performing assessment (highest average)
+     */
+    private String bestAssessment;
+
+    /**
+     * Worst performing assessment (lowest average)
+     */
+    private String worstAssessment;
+
+    /**
+     * Assessment type with best average performance (e.g., "QUIZ", "EXAM")
+     */
+    private String bestAssessmentType;
+
+    /**
+     * Assessment type with worst average performance
+     */
+    private String worstAssessmentType;
+
+    /**
+     * Participation rate (average percentage of students evaluated per assessment)
+     */
+    private BigDecimal participationRate;
+
+    /**
      * Inner class for assessment summary
      */
     @Data

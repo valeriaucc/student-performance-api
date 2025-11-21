@@ -118,26 +118,37 @@ public class RecommendationServiceImpl implements RecommendationService {
         log.debug("Fetching recommendations by recipient with pagination: recipientId={}, page={}, size={}", 
                   recipientId, pageable.getPageNumber(), pageable.getPageSize());
         
-        // ✅ AUTHORIZATION: Verify access rights
-        AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
-        
-        if (currentUser.isStudent()) {
-            // Students can only view their own recommendations
-            if (!recipientId.equals(currentUser.getUserId())) {
-                log.warn("Recommendations access denied: student {} tried to access recommendations for recipient {}", 
-                         currentUser.getUserId(), recipientId);
-                throw new AccessDeniedException("You can only view your own recommendations");
+        try {
+            // ✅ AUTHORIZATION: Verify access rights
+            AuthenticatedUser currentUser = SecurityContextHelper.requireAuthentication();
+            
+            if (currentUser.isStudent()) {
+                // Students can only view their own recommendations
+                if (!recipientId.equals(currentUser.getUserId())) {
+                    log.warn("Recommendations access denied: student {} tried to access recommendations for recipient {}", 
+                             currentUser.getUserId(), recipientId);
+                    throw new AccessDeniedException("You can only view your own recommendations");
+                }
+                return recommendationRepository.findByRecipientId(recipientId, pageable)
+                        .map(recommendationMapper::toResponse);
+            } else if (currentUser.isTeacher()) {
+                Page<AiRecommendation> recommendations = recommendationRepository.findByRecipientIdAndTeacherId(
+                        recipientId,
+                        currentUser.getUserId(),
+                        pageable
+                );
+                log.debug("Found {} recommendations for recipient {} by teacher {}", 
+                         recommendations.getTotalElements(), recipientId, currentUser.getUserId());
+                return recommendations.map(recommendationMapper::toResponse);
             }
-        } else if (currentUser.isTeacher()) {
-            return recommendationRepository.findByRecipientIdAndTeacherId(
-                    recipientId,
-                    currentUser.getUserId(),
-                    pageable
-            ).map(recommendationMapper::toResponse);
+            
+            // Fallback for other user types
+            return recommendationRepository.findByRecipientId(recipientId, pageable)
+                    .map(recommendationMapper::toResponse);
+        } catch (Exception e) {
+            log.error("Error fetching recommendations by recipientId {}: {}", recipientId, e.getMessage(), e);
+            throw e;
         }
-        
-        return recommendationRepository.findByRecipientId(recipientId, pageable)
-                .map(recommendationMapper::toResponse);
     }
 
     @Override
@@ -422,9 +433,22 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .collect(Collectors.toSet());
         int totalStudents = uniqueStudents.size();
         
-        // Calculate average score and percentage
-        BigDecimal totalScore = BigDecimal.ZERO;
-        BigDecimal totalMaxScore = BigDecimal.ZERO;
+        // Group grades by assessment (assessmentKind + assessmentName) to calculate per-assessment averages
+        // Filter out grades with invalid scores to avoid calculation errors
+        Map<String, List<Grade>> gradesByAssessment = grades.stream()
+                .filter(g -> g.getScore() != null && g.getMaxScore() != null && 
+                            g.getMaxScore().compareTo(BigDecimal.ZERO) > 0 &&
+                            g.getScore().compareTo(BigDecimal.ZERO) >= 0)
+                .collect(Collectors.groupingBy(g -> 
+                    (g.getAssessmentKind() != null ? g.getAssessmentKind() : "") + "|" + 
+                    (g.getAssessmentName() != null ? g.getAssessmentName() : "")));
+        
+        log.debug("Grouped {} valid grades into {} assessment groups", 
+                 grades.stream().filter(g -> g.getScore() != null && g.getMaxScore() != null).count(),
+                 gradesByAssessment.size());
+        
+        // Calculate per-assessment averages (average of all students for each assessment)
+        // This will give us the true class average: average of assessment averages
         List<ClassPerformanceData.AssessmentSummary> assessments = new ArrayList<>();
         Map<String, Integer> performanceDistribution = new HashMap<>();
         Set<String> weakAreas = new HashSet<>();
@@ -432,58 +456,231 @@ public class RecommendationServiceImpl implements RecommendationService {
         StringBuilder contentSummary = new StringBuilder();
         StringBuilder feedbackSummary = new StringBuilder();
         
-        for (Grade grade : grades) {
-            if (grade.getScore() != null && grade.getMaxScore() != null) {
-                totalScore = totalScore.add(grade.getScore());
-                totalMaxScore = totalMaxScore.add(grade.getMaxScore());
+        BigDecimal totalAssessmentAveragePercentage = BigDecimal.ZERO;
+        BigDecimal totalAssessmentAverageScore = BigDecimal.ZERO;
+        int validAssessments = 0;
+        
+        for (Map.Entry<String, List<Grade>> entry : gradesByAssessment.entrySet()) {
+            List<Grade> assessmentGrades = entry.getValue();
+            if (assessmentGrades.isEmpty()) continue;
+            
+            // Calculate average for this assessment (across all students who took it)
+            BigDecimal assessmentTotalScore = BigDecimal.ZERO;
+            BigDecimal assessmentTotalMaxScore = BigDecimal.ZERO;
+            BigDecimal assessmentTotalPercentage = BigDecimal.ZERO;
+            int studentsInAssessment = 0;
+            String assessmentContent = null;
+            String assessmentKind = null;
+            String assessmentName = null;
+            
+            for (Grade grade : assessmentGrades) {
+                if (grade.getScore() != null && grade.getMaxScore() != null) {
+                    assessmentTotalScore = assessmentTotalScore.add(grade.getScore());
+                    assessmentTotalMaxScore = assessmentTotalMaxScore.add(grade.getMaxScore());
+                    
+                    BigDecimal percentage = grade.getScore()
+                            .divide(grade.getMaxScore(), 4, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"));
+                    assessmentTotalPercentage = assessmentTotalPercentage.add(percentage);
+                    studentsInAssessment++;
+                    
+                    // Performance distribution (per individual grade)
+                    String level = categorizePerformance(percentage);
+                    performanceDistribution.merge(level, 1, Integer::sum);
+                    
+                    // Identify weak/strong areas based on performance
+                    String content = MetadataParser.extractAssessmentContent(grade.getMetadata());
+                    if (content != null && !content.isBlank()) {
+                        if (assessmentContent == null) {
+                            assessmentContent = content;
+                        }
+                        if (percentage.compareTo(new BigDecimal("60")) < 0) {
+                            weakAreas.add(content);
+                        } else if (percentage.compareTo(new BigDecimal("85")) >= 0) {
+                            strongAreas.add(content);
+                        }
+                    }
+                    
+                    if (content != null && !content.isBlank()) {
+                        contentSummary.append(content).append("; ");
+                    }
+                    
+                    String feedback = MetadataParser.extractFeedback(grade.getMetadata());
+                    if (feedback != null && !feedback.isBlank()) {
+                        feedbackSummary.append(feedback).append("; ");
+                    }
+                    
+                    if (assessmentKind == null) {
+                        assessmentKind = grade.getAssessmentKind();
+                        assessmentName = grade.getAssessmentName();
+                    }
+                }
+            }
+            
+            // Calculate average for this assessment
+            // Note: assessmentAveragePercentage is calculated from individual percentages, not from total scores
+            // This ensures correct calculation regardless of maxScore values (e.g., 5 vs 100)
+            if (studentsInAssessment > 0) {
+                BigDecimal assessmentAverageScore = assessmentTotalScore.divide(
+                    new BigDecimal(studentsInAssessment), 2, RoundingMode.HALF_UP);
+                BigDecimal assessmentAveragePercentage = assessmentTotalPercentage.divide(
+                    new BigDecimal(studentsInAssessment), 2, RoundingMode.HALF_UP);
                 
-                BigDecimal percentage = grade.getScore()
-                        .divide(grade.getMaxScore(), 4, RoundingMode.HALF_UP)
-                        .multiply(new BigDecimal("100"));
+                // Validate calculated values
+                if (assessmentAveragePercentage.compareTo(BigDecimal.ZERO) < 0 || 
+                    assessmentAveragePercentage.compareTo(new BigDecimal("100")) > 100) {
+                    log.warn("Invalid average percentage calculated for assessment {}: {}. Scores: {}, MaxScores: {}, Students: {}", 
+                            assessmentName, assessmentAveragePercentage, assessmentTotalScore, assessmentTotalMaxScore, studentsInAssessment);
+                }
                 
-                // Performance distribution
-                String level = categorizePerformance(percentage);
-                performanceDistribution.merge(level, 1, Integer::sum);
+                log.debug("Assessment '{}': Average Score={}, Average Percentage={}%, Students={}", 
+                         assessmentName, assessmentAverageScore, assessmentAveragePercentage, studentsInAssessment);
                 
-                // Assessment summary
+                // Add to assessment summaries
                 ClassPerformanceData.AssessmentSummary summary = ClassPerformanceData.AssessmentSummary.builder()
-                        .assessmentName(grade.getAssessmentName())
-                        .assessmentKind(grade.getAssessmentKind())
-                        .averageScore(grade.getScore())
-                        .averagePercentage(percentage)
-                        .studentCount(1)
-                        .content(MetadataParser.extractAssessmentContent(grade.getMetadata()))
+                        .assessmentName(assessmentName)
+                        .assessmentKind(assessmentKind)
+                        .averageScore(assessmentAverageScore)
+                        .averagePercentage(assessmentAveragePercentage)
+                        .studentCount(studentsInAssessment)
+                        .content(assessmentContent)
                         .build();
                 assessments.add(summary);
                 
-                // Identify weak/strong areas based on performance
-                String content = MetadataParser.extractAssessmentContent(grade.getMetadata());
-                if (content != null && !content.isBlank()) {
-                    if (percentage.compareTo(new BigDecimal("60")) < 0) {
-                        weakAreas.add(content);
-                    } else if (percentage.compareTo(new BigDecimal("85")) >= 0) {
-                        strongAreas.add(content);
-                    }
-                }
-                
-                if (content != null && !content.isBlank()) {
-                    contentSummary.append(content).append("; ");
-                }
-                
-                String feedback = MetadataParser.extractFeedback(grade.getMetadata());
-                if (feedback != null && !feedback.isBlank()) {
-                    feedbackSummary.append(feedback).append("; ");
-                }
+                // Accumulate for overall class average (average of assessment averages)
+                totalAssessmentAveragePercentage = totalAssessmentAveragePercentage.add(assessmentAveragePercentage);
+                totalAssessmentAverageScore = totalAssessmentAverageScore.add(assessmentAverageScore);
+                validAssessments++;
             }
         }
         
-        BigDecimal averageScore = totalMaxScore.compareTo(BigDecimal.ZERO) > 0 
-                ? totalScore.divide(new BigDecimal(totalAssessments), 2, RoundingMode.HALF_UP)
+        // Calculate overall class average: average of all assessment averages
+        // This is the true class average - the average of how the class performed across all assessments
+        BigDecimal averagePercentage = validAssessments > 0
+                ? totalAssessmentAveragePercentage.divide(new BigDecimal(validAssessments), 2, RoundingMode.HALF_UP)
                 : null;
-        BigDecimal averagePercentage = totalMaxScore.compareTo(BigDecimal.ZERO) > 0
-                ? totalScore.divide(totalMaxScore, 4, RoundingMode.HALF_UP)
+        
+        BigDecimal averageScore = validAssessments > 0
+                ? totalAssessmentAverageScore.divide(new BigDecimal(validAssessments), 2, RoundingMode.HALF_UP)
+                : null;
+
+        // 🔍 ADDITIONAL INSIGHTS: Calculate advanced statistics
+        
+        // Collect all individual percentages for statistical analysis
+        List<BigDecimal> allPercentages = new ArrayList<>();
+        for (Grade grade : grades) {
+            if (grade.getScore() != null && grade.getMaxScore() != null) {
+                BigDecimal percentage = grade.getScore()
+                        .divide(grade.getMaxScore(), 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+                allPercentages.add(percentage);
+            }
+        }
+        
+        // Calculate min, max, median, standard deviation
+        BigDecimal minPercentage = null;
+        BigDecimal maxPercentage = null;
+        BigDecimal medianPercentage = null;
+        BigDecimal standardDeviation = null;
+        int studentsAtRisk = 0;
+        int studentsPerformingWell = 0;
+        
+        if (!allPercentages.isEmpty()) {
+            allPercentages.sort(BigDecimal::compareTo);
+            minPercentage = allPercentages.get(0);
+            maxPercentage = allPercentages.get(allPercentages.size() - 1);
+            
+            // Median
+            int middle = allPercentages.size() / 2;
+            if (allPercentages.size() % 2 == 0) {
+                medianPercentage = allPercentages.get(middle - 1)
+                        .add(allPercentages.get(middle))
+                        .divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
+            } else {
+                medianPercentage = allPercentages.get(middle);
+            }
+            
+            // Standard deviation
+            if (averagePercentage != null && allPercentages.size() > 1) {
+                BigDecimal variance = BigDecimal.ZERO;
+                for (BigDecimal pct : allPercentages) {
+                    BigDecimal diff = pct.subtract(averagePercentage);
+                    variance = variance.add(diff.multiply(diff));
+                }
+                variance = variance.divide(new BigDecimal(allPercentages.size() - 1), 4, RoundingMode.HALF_UP);
+                standardDeviation = new BigDecimal(Math.sqrt(variance.doubleValue()));
+                standardDeviation = standardDeviation.setScale(2, RoundingMode.HALF_UP);
+            }
+            
+            // Students at risk (< 60%) and performing well (>= 85%)
+            // Count UNIQUE students, not individual grades
+            Set<UUID> atRiskStudentIds = new HashSet<>();
+            Set<UUID> wellPerformingStudentIds = new HashSet<>();
+            
+            for (Grade grade : grades) {
+                if (grade.getScore() != null && grade.getMaxScore() != null) {
+                    BigDecimal percentage = grade.getScore()
+                            .divide(grade.getMaxScore(), 4, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"));
+                    
+                    UUID studentId = grade.getStudent().getId();
+                    if (percentage.compareTo(new BigDecimal("60")) < 0) {
+                        atRiskStudentIds.add(studentId);
+                    }
+                    if (percentage.compareTo(new BigDecimal("85")) >= 0) {
+                        wellPerformingStudentIds.add(studentId);
+                    }
+                }
+            }
+            
+            studentsAtRisk = atRiskStudentIds.size();
+            studentsPerformingWell = wellPerformingStudentIds.size();
+        }
+        
+        BigDecimal atRiskPercentage = totalStudents > 0
+                ? new BigDecimal(studentsAtRisk)
+                        .divide(new BigDecimal(totalStudents), 4, RoundingMode.HALF_UP)
                         .multiply(new BigDecimal("100"))
+                        .setScale(1, RoundingMode.HALF_UP)
                 : null;
+        
+        // Class performance trend (comparing first half vs second half of assessments)
+        String classPerformanceTrend = determineClassPerformanceTrend(assessments);
+        
+        // Best and worst assessments
+        String bestAssessment = null;
+        String worstAssessment = null;
+        String bestAssessmentType = null;
+        String worstAssessmentType = null;
+        if (!assessments.isEmpty()) {
+            assessments.sort((a1, a2) -> {
+                if (a1.getAveragePercentage() == null || a2.getAveragePercentage() == null) return 0;
+                return a2.getAveragePercentage().compareTo(a1.getAveragePercentage());
+            });
+            ClassPerformanceData.AssessmentSummary best = assessments.get(0);
+            ClassPerformanceData.AssessmentSummary worst = assessments.get(assessments.size() - 1);
+            
+            bestAssessment = best.getAssessmentName() != null ? best.getAssessmentName() : best.getAssessmentKind();
+            worstAssessment = worst.getAssessmentName() != null ? worst.getAssessmentName() : worst.getAssessmentKind();
+            bestAssessmentType = best.getAssessmentKind();
+            worstAssessmentType = worst.getAssessmentKind();
+        }
+        
+        // Participation rate: average percentage of students evaluated per assessment
+        BigDecimal participationRate = null;
+        if (!assessments.isEmpty() && totalStudents > 0) {
+            int totalPossibleEvaluations = assessments.size() * totalStudents;
+            int actualEvaluations = grades.stream()
+                    .filter(g -> g.getScore() != null && g.getMaxScore() != null)
+                    .mapToInt(g -> 1)
+                    .sum();
+            if (totalPossibleEvaluations > 0) {
+                participationRate = new BigDecimal(actualEvaluations)
+                        .divide(new BigDecimal(totalPossibleEvaluations), 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"))
+                        .setScale(1, RoundingMode.HALF_UP);
+            }
+        }
         
         return ClassPerformanceData.builder()
                 .subjectName(classEntity.getSubject().getName())
@@ -498,6 +695,19 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .commonStrongAreas(new ArrayList<>(strongAreas))
                 .assessmentContentSummary(contentSummary.toString().trim())
                 .feedbackSummary(feedbackSummary.toString().trim())
+                .classPerformanceTrend(classPerformanceTrend)
+                .minPercentage(minPercentage)
+                .maxPercentage(maxPercentage)
+                .medianPercentage(medianPercentage)
+                .standardDeviation(standardDeviation)
+                .studentsAtRisk(studentsAtRisk)
+                .atRiskPercentage(atRiskPercentage)
+                .studentsPerformingWell(studentsPerformingWell)
+                .bestAssessment(bestAssessment)
+                .worstAssessment(worstAssessment)
+                .bestAssessmentType(bestAssessmentType)
+                .worstAssessmentType(worstAssessmentType)
+                .participationRate(participationRate)
                 .build();
     }
 
@@ -632,6 +842,47 @@ public class RecommendationServiceImpl implements RecommendationService {
         if (improving > declining) {
             return "Improving";
         } else if (declining > improving) {
+            return "Declining";
+        } else {
+            return "Stable";
+        }
+    }
+
+    /**
+     * Determines class performance trend by comparing early vs recent assessments.
+     */
+    private String determineClassPerformanceTrend(List<ClassPerformanceData.AssessmentSummary> assessments) {
+        if (assessments.size() < 2) {
+            return "Insufficient data";
+        }
+        
+        // Sort assessments by name/kind to get chronological order (assuming naming convention)
+        // Or we could use gradedAt if available, but for now we'll use list order
+        // First half vs second half
+        int midPoint = assessments.size() / 2;
+        List<ClassPerformanceData.AssessmentSummary> earlyAssessments = assessments.subList(0, midPoint);
+        List<ClassPerformanceData.AssessmentSummary> recentAssessments = assessments.subList(midPoint, assessments.size());
+        
+        BigDecimal earlyAverage = earlyAssessments.stream()
+                .filter(a -> a.getAveragePercentage() != null)
+                .map(ClassPerformanceData.AssessmentSummary::getAveragePercentage)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(earlyAssessments.stream()
+                        .filter(a -> a.getAveragePercentage() != null)
+                        .count()), 2, RoundingMode.HALF_UP);
+        
+        BigDecimal recentAverage = recentAssessments.stream()
+                .filter(a -> a.getAveragePercentage() != null)
+                .map(ClassPerformanceData.AssessmentSummary::getAveragePercentage)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(recentAssessments.stream()
+                        .filter(a -> a.getAveragePercentage() != null)
+                        .count()), 2, RoundingMode.HALF_UP);
+        
+        BigDecimal diff = recentAverage.subtract(earlyAverage);
+        if (diff.compareTo(new BigDecimal("3")) > 0) {
+            return "Improving";
+        } else if (diff.compareTo(new BigDecimal("-3")) < 0) {
             return "Declining";
         } else {
             return "Stable";

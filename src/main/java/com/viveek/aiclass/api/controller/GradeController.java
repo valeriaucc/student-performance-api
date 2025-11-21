@@ -41,7 +41,15 @@ public class GradeController {
 
     @PostMapping
     @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
-    @Operation(summary = "Create a new grade", description = "Creates a new grade for a student (TEACHER only)")
+    @Operation(
+        summary = "Create a new grade", 
+        description = "Creates a new grade for a student (TEACHER only). " +
+                      "**Assessment Content:** When creating the FIRST grade for an assessment (same classId, assessmentKind, and assessmentName), " +
+                      "include assessment content in the metadata field (keys: 'assessmentContent', 'content', 'description', 'assessmentDescription'). " +
+                      "For subsequent grades of the same assessment, assessment content is automatically copied from the first grade. " +
+                      "**Teacher Feedback:** Provide personalized feedback for each student in the metadata field (keys: 'feedback', 'teacherFeedback', 'comments', 'notes', 'teacherComments'). " +
+                      "Feedback is specific to each student and each grade."
+    )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Grade created successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),

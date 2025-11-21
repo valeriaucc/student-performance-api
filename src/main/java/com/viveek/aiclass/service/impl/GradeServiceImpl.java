@@ -22,6 +22,7 @@ import com.viveek.aiclass.mapper.GradeMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.GradeService;
+import com.viveek.aiclass.util.MetadataParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -90,6 +91,38 @@ public class GradeServiceImpl implements GradeService {
             throw new BusinessException(ValidationMessages.ENROLLMENT_NOT_ACTIVE);
         }
 
+        // 🔄 ASSESSMENT CONTENT SHARING: Check if this is the first grade for this assessment
+        // If not, merge assessment content from existing grades with feedback from this grade
+        Map<String, Object> finalMetadata = request.getMetadata() != null 
+                ? new HashMap<>(request.getMetadata()) 
+                : new HashMap<>();
+        
+        List<Grade> existingGradesForAssessment = gradeRepository.findByClassAndAssessment(
+                request.getClassId(), 
+                request.getAssessmentKind(), 
+                request.getAssessmentName()
+        );
+        
+        if (!existingGradesForAssessment.isEmpty()) {
+            // This is NOT the first grade for this assessment
+            // Extract assessment content from the first grade and merge with new metadata
+            Grade firstGrade = existingGradesForAssessment.get(0);
+            Map<String, Object> existingMetadata = firstGrade.getMetadata() != null 
+                    ? firstGrade.getMetadata() 
+                    : new HashMap<>();
+            
+            log.debug("Assessment '{}' already exists. Merging assessment content from first grade with new feedback.", 
+                     request.getAssessmentName());
+            
+            // Merge: assessment content from existing, feedback from new
+            finalMetadata = MetadataParser.mergeMetadataForAssessment(existingMetadata, finalMetadata);
+        } else {
+            // This IS the first grade for this assessment
+            // Assessment content should be provided in metadata
+            log.debug("This is the first grade for assessment '{}'. Assessment content should be in metadata.", 
+                     request.getAssessmentName());
+        }
+
         Grade grade = Grade.builder()
                 .classEntity(classEntity)
                 .student(student)
@@ -98,7 +131,7 @@ public class GradeServiceImpl implements GradeService {
                 .score(request.getScore())
                 .maxScore(request.getMaxScore())
                 .gradedAt(request.getGradedAt() != null ? request.getGradedAt() : ZonedDateTime.now())
-                .metadata(request.getMetadata())
+                .metadata(finalMetadata)
                 .build();
 
         Grade savedGrade = gradeRepository.save(grade);

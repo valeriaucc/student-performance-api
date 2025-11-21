@@ -90,5 +90,29 @@ public interface GradeRepository extends JpaRepository<Grade, UUID> {
             @Param("teacherId") UUID teacherId,
             Pageable pageable
     );
+
+    /**
+     * Find the first grade for a specific assessment in a class.
+     * Used to retrieve assessment content that was defined when the assessment was first created.
+     * 
+     * @param classId the class ID
+     * @param assessmentKind the assessment kind (e.g., "EXAM", "QUIZ")
+     * @param assessmentName the assessment name (e.g., "Midterm Exam 1")
+     * @return the first grade for this assessment, or empty if none exists
+     */
+    @Query("SELECT g FROM Grade g " +
+           "LEFT JOIN FETCH g.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH g.student " +
+           "WHERE g.classEntity.id = :classId " +
+           "AND g.assessmentKind = :assessmentKind " +
+           "AND (:assessmentName IS NULL OR g.assessmentName = :assessmentName) " +
+           "ORDER BY g.createdAt ASC")
+    List<Grade> findByClassAndAssessment(
+            @Param("classId") UUID classId,
+            @Param("assessmentKind") String assessmentKind,
+            @Param("assessmentName") String assessmentName
+    );
 }
 

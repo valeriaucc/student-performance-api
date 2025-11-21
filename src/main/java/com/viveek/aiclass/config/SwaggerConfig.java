@@ -63,6 +63,13 @@ public class SwaggerConfig implements WebMvcConfigurer {
                                 - Automatically filtered from all queries
                                 - No breaking changes to API responses
                                 
+                                ### AI-Powered Recommendations
+                                - **Grade-based recommendations**: Generate personalized AI recommendations for specific assessments
+                                - **Class performance recommendations**: Get AI insights for overall class performance (teacher-focused)
+                                - **Student performance recommendations**: Get AI insights for individual student performance in a class (teacher-focused)
+                                - Recommendations are idempotent - regenerating returns existing recommendation unless `forceRegenerate=true`
+                                - Powered by OpenAI GPT models for intelligent, context-aware suggestions
+                                
                                 ## Authentication
                                 This API uses **JWT Bearer tokens** from Supabase Auth.
                                 

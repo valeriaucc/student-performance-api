@@ -59,9 +59,9 @@ supabase.service.role.key=YOUR_SERVICE_ROLE_KEY_HERE
 # ============================================================================
 # Get from OpenAI Dashboard > API Keys: https://platform.openai.com/api-keys
 openai.api.key=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
-openai.api.timeout=30000
+openai.api.timeout=120000
 openai.model=gpt-4o-mini
-openai.max-tokens=500
+openai.max-tokens=2000
 
 # ============================================================================
 # CORS CONFIGURATION

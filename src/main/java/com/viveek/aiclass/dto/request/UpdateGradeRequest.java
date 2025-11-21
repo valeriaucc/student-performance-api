@@ -38,7 +38,13 @@ public class UpdateGradeRequest {
     @Schema(description = "When the grade was assigned", example = "2025-10-15T14:30:00-05:00")
     private ZonedDateTime gradedAt;
 
-    @Schema(description = "Additional metadata", example = "{\"notes\": \"Excellent work\", \"rubric_score\": 4}")
+    @Schema(
+        description = "Additional metadata (JSON object). " +
+                      "Use keys 'assessmentContent', 'content', 'description', or 'assessmentDescription' for assessment content. " +
+                      "Use keys 'feedback', 'teacherFeedback', 'comments', 'notes', or 'teacherComments' for teacher feedback. " +
+                      "This metadata is used by AI recommendation generation to provide context-aware suggestions.",
+        example = "{\"assessmentContent\": \"Chapter 1-5: Data Structures\", \"feedback\": \"Great improvement\", \"notes\": \"Updated score\", \"rubric_score\": 4}"
+    )
     private Map<String, Object> metadata;
 }
 
