@@ -1,12 +1,16 @@
 package com.viveek.aiclass.domain.model;
 
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Type;
 import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Grade entity representing a student's grade/score in a class.
@@ -48,5 +52,10 @@ public class Grade extends BaseEntity {
 
     @Column(name = "graded_at")
     private ZonedDateTime gradedAt;
+
+    @Type(JsonType.class)
+    @Column(name = "metadata", columnDefinition = "jsonb")
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>();
 }
 

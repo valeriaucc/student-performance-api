@@ -1,6 +1,7 @@
 package com.viveek.aiclass.api.controller;
 
 import com.viveek.aiclass.api.ApiVersions;
+import com.viveek.aiclass.constants.SecurityRoles;
 import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
 import com.viveek.aiclass.dto.request.CreateRecommendationRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
@@ -95,6 +96,60 @@ public class RecommendationController {
         }
         
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(recommendations)));
+    }
+
+    @PostMapping("/classes/{classId}/generate-teacher-recommendation")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
+    @Operation(
+        summary = "Generate AI recommendation for teacher based on class performance",
+        description = "Generates an AI-powered recommendation for the teacher based on overall class performance. " +
+                      "Analyzes all grades in the class to provide teaching strategies, intervention suggestions, " +
+                      "and areas to focus on for the entire class. " +
+                      "If a recommendation already exists for this class, it will be returned instead of generating a new one (idempotent). " +
+                      "Set forceRegenerate=true to regenerate the recommendation even if one exists (useful after updating grades). " +
+                      "Only teachers who own the class can generate recommendations."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Teacher recommendation generated successfully (or existing recommendation returned)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Class not found or no grades available"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Access denied - insufficient permissions"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "OpenAI service unavailable")
+    })
+    public ResponseEntity<ApiResponse<RecommendationResponse>> generateTeacherRecommendationForClass(
+            @Parameter(description = "Class ID for which to generate teacher recommendation", example = "558fe999-dc20-4437-9b46-f7b32bbc9ea7")
+            @PathVariable UUID classId,
+            @Parameter(description = "Force regeneration - if true, regenerates recommendation even if one exists", example = "false")
+            @RequestParam(required = false, defaultValue = "false") boolean forceRegenerate) {
+        RecommendationResponse recommendation = recommendationService.generateTeacherRecommendationForClass(classId, forceRegenerate);
+        return ResponseEntity.ok(ApiResponse.success("Teacher recommendation generated successfully", recommendation));
+    }
+
+    @PostMapping("/classes/{classId}/students/{studentId}/generate-teacher-recommendation")
+    @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
+    @Operation(
+        summary = "Generate AI recommendation for teacher based on student performance",
+        description = "Generates an AI-powered recommendation for the teacher based on a specific student's performance " +
+                      "across all assessments in the class. Analyzes all grades for the student to provide personalized " +
+                      "teaching strategies, intervention suggestions, and support recommendations. " +
+                      "If a recommendation already exists for this student in this class, it will be returned instead of generating a new one (idempotent). " +
+                      "Set forceRegenerate=true to regenerate the recommendation even if one exists (useful after updating grades). " +
+                      "Only teachers who teach the class can generate recommendations."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Teacher recommendation generated successfully (or existing recommendation returned)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Class, Student not found, or student not enrolled in class"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Access denied - insufficient permissions"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "OpenAI service unavailable")
+    })
+    public ResponseEntity<ApiResponse<RecommendationResponse>> generateTeacherRecommendationForStudent(
+            @Parameter(description = "Class ID", example = "558fe999-dc20-4437-9b46-f7b32bbc9ea7")
+            @PathVariable UUID classId,
+            @Parameter(description = "Student ID for which to generate teacher recommendation", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
+            @PathVariable UUID studentId,
+            @Parameter(description = "Force regeneration - if true, regenerates recommendation even if one exists", example = "false")
+            @RequestParam(required = false, defaultValue = "false") boolean forceRegenerate) {
+        RecommendationResponse recommendation = recommendationService.generateTeacherRecommendationForStudent(classId, studentId, forceRegenerate);
+        return ResponseEntity.ok(ApiResponse.success("Teacher recommendation generated successfully", recommendation));
     }
 
     @DeleteMapping("/{id}")

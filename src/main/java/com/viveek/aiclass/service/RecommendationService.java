@@ -35,6 +35,51 @@ public interface RecommendationService {
      */
     Page<RecommendationResponse> getRecommendationsByAudience(RecommendationAudience audience, Pageable pageable);
 
+    /**
+     * Generate an AI-powered recommendation for a specific grade/assessment (for students).
+     * 
+     * This method:
+     * - Checks for existing recommendation (idempotency)
+     * - Extracts data from the grade (subject, assessment content, feedback, score)
+     * - Calls OpenAI to generate a personalized recommendation
+     * - Saves and returns the recommendation linked to the grade
+     * 
+     * Authorization: Teachers can generate for their classes, students can generate for their own grades.
+     * 
+     * @param gradeId the UUID of the grade/assessment
+     * @return the generated recommendation response
+     */
+    RecommendationResponse generateRecommendationForGrade(UUID gradeId);
+
+    /**
+     * Generate an AI-powered recommendation for teachers based on class performance.
+     * 
+     * Analyzes all grades in a class to provide teaching strategies, intervention suggestions,
+     * and areas to focus on for the entire class.
+     * 
+     * Authorization: Only teachers who own the class can generate recommendations.
+     * 
+     * @param classId the UUID of the class
+     * @param forceRegenerate if true, regenerates even if a recommendation exists
+     * @return the generated recommendation response for the teacher
+     */
+    RecommendationResponse generateTeacherRecommendationForClass(UUID classId, boolean forceRegenerate);
+
+    /**
+     * Generate an AI-powered recommendation for teachers based on a specific student's performance.
+     * 
+     * Analyzes all grades for a student to provide personalized teaching strategies,
+     * intervention suggestions, and support recommendations.
+     * 
+     * Authorization: Only teachers who teach the student can generate recommendations.
+     * 
+     * @param classId the UUID of the class
+     * @param studentId the UUID of the student
+     * @param forceRegenerate if true, regenerates even if a recommendation exists
+     * @return the generated recommendation response for the teacher
+     */
+    RecommendationResponse generateTeacherRecommendationForStudent(UUID classId, UUID studentId, boolean forceRegenerate);
+
     void deleteRecommendation(UUID id);
 }
 

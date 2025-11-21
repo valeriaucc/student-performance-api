@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -52,6 +53,12 @@ public class GradeResponse {
     
     @Schema(description = "When the grade was assigned", example = "2025-10-11T10:30:00-05:00")
     private ZonedDateTime gradedAt;
+    
+    @Schema(description = "Additional metadata", example = "{\"notes\": \"Excellent work\", \"rubric_score\": 4}")
+    private Map<String, Object> metadata;
+    
+    @Schema(description = "AI-generated recommendation for this assessment (if available)", example = "{\"id\": \"9c5e8d7f-4a3b-2c1d-0e9f-8a7b6c5d4e3f\", \"message\": \"Focus on chapter 3 exercises...\"}")
+    private RecommendationSummary recommendation;
     
     @Schema(description = "Creation timestamp", example = "2025-10-11T10:30:00-05:00")
     private ZonedDateTime createdAt;

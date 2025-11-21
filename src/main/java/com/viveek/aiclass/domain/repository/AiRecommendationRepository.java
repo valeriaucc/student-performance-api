@@ -107,5 +107,38 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
             @Param("recipientId") UUID recipientId,
             Pageable pageable
     );
+
+    /**
+     * Find recommendation by grade ID (for idempotency check).
+     * Returns the first recommendation linked to the specified grade.
+     */
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "LEFT JOIN FETCH r.grade " +
+           "WHERE r.grade.id = :gradeId")
+    java.util.Optional<AiRecommendation> findByGradeId(@Param("gradeId") UUID gradeId);
+
+    /**
+     * Find all recommendations for a specific grade with pagination.
+     */
+    @Query("SELECT r FROM AiRecommendation r " +
+           "LEFT JOIN FETCH r.classEntity c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH r.recipient " +
+           "LEFT JOIN FETCH r.grade " +
+           "WHERE r.grade.id = :gradeId")
+    Page<AiRecommendation> findByGradeId(@Param("gradeId") UUID gradeId, Pageable pageable);
+
+    /**
+     * Find recommendations for multiple grades (batch query for efficiency).
+     * Returns a map of gradeId -> recommendation for easy lookup.
+     */
+    @Query("SELECT r FROM AiRecommendation r " +
+           "WHERE r.grade.id IN :gradeIds")
+    List<AiRecommendation> findByGradeIds(@Param("gradeIds") List<UUID> gradeIds);
 }
 

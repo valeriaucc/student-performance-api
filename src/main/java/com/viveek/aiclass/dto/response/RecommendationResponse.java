@@ -30,6 +30,9 @@ public class RecommendationResponse {
     @Schema(description = "Class name (subject + group)", example = "CS101-A")
     private String className;
     
+    @Schema(description = "Grade UUID (if recommendation is linked to a specific assessment)", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+    private UUID gradeId;
+    
     @Schema(description = "Recipient user UUID", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
     private UUID recipientId;
     

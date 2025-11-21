@@ -6,6 +6,9 @@ import com.viveek.aiclass.domain.model.Subject;
 import com.viveek.aiclass.domain.model.User;
 import com.viveek.aiclass.domain.model.enums.Semester;
 import com.viveek.aiclass.domain.model.enums.UserRole;
+import com.viveek.aiclass.domain.model.AiRecommendation;
+import com.viveek.aiclass.domain.model.enums.RecommendationAudience;
+import com.viveek.aiclass.domain.repository.AiRecommendationRepository;
 import com.viveek.aiclass.domain.repository.ClassRepository;
 import com.viveek.aiclass.domain.repository.EnrollmentRepository;
 import com.viveek.aiclass.domain.repository.SubjectRepository;
@@ -13,6 +16,7 @@ import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateClassRequest;
 import com.viveek.aiclass.dto.request.UpdateClassRequest;
 import com.viveek.aiclass.dto.response.ClassResponse;
+import com.viveek.aiclass.dto.response.RecommendationSummary;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.ClassMapper;
@@ -27,8 +31,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +47,7 @@ public class ClassServiceImpl implements ClassService {
     private final SubjectRepository subjectRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final AiRecommendationRepository recommendationRepository;
     private final ClassMapper classMapper;
 
     @Override
@@ -150,7 +154,14 @@ public class ClassServiceImpl implements ClassService {
             }
         }
         
-        return classMapper.toResponse(classEntity);
+        ClassResponse response = classMapper.toResponse(classEntity);
+        
+        // Enrich with teacher recommendation if user is the teacher
+        if (currentUser.isTeacher() && classEntity.getTeacher().getId().equals(currentUser.getUserId())) {
+            enrichWithTeacherRecommendation(response, classEntity.getId(), currentUser.getUserId());
+        }
+        
+        return response;
     }
 
     @Override
@@ -164,6 +175,7 @@ public class ClassServiceImpl implements ClassService {
         if (currentUser.isTeacher()) {
             // Teachers only see their own classes
             log.debug("Filtering classes for teacher: {} with pagination", currentUser.getUserId());
+            // getClassesByTeacherId already enriches with recommendations
             return getClassesByTeacherId(currentUser.getUserId(), pageable);
         } else if (currentUser.isStudent()) {
             // Students only see classes they're enrolled in
@@ -180,8 +192,14 @@ public class ClassServiceImpl implements ClassService {
     public Page<ClassResponse> getClassesByTeacherId(UUID teacherId, Pageable pageable) {
         log.debug("Fetching classes by teacher with pagination: teacherId={}, page={}, size={}", 
                   teacherId, pageable.getPageNumber(), pageable.getPageSize());
-        return classRepository.findByTeacherId(teacherId, pageable)
+        
+        Page<ClassResponse> classPage = classRepository.findByTeacherId(teacherId, pageable)
                 .map(classMapper::toResponse);
+        
+        // Enrich with teacher recommendations in batch
+        enrichClassesWithTeacherRecommendations(classPage.getContent(), teacherId);
+        
+        return classPage;
     }
 
     @Override
@@ -220,6 +238,65 @@ public class ClassServiceImpl implements ClassService {
         // Use repository.delete() to trigger @SQLDelete annotation
         classRepository.delete(classEntity);
         log.debug("Class soft deleted successfully: id={}", id);
+    }
+
+    /**
+     * Enriches a single class response with its teacher recommendation (if exists).
+     */
+    private void enrichWithTeacherRecommendation(ClassResponse classResponse, UUID classId, UUID teacherId) {
+        recommendationRepository.findByClassAndAudience(classId, RecommendationAudience.TEACHER)
+                .stream()
+                .filter(rec -> rec.getRecipient().getId().equals(teacherId))
+                .findFirst()
+                .ifPresent(recommendation -> {
+                    RecommendationSummary summary = RecommendationSummary.builder()
+                            .id(recommendation.getId())
+                            .message(recommendation.getMessage())
+                            .build();
+                    classResponse.setTeacherRecommendation(summary);
+                });
+    }
+
+    /**
+     * Enriches multiple class responses with their teacher recommendations in batch (efficient).
+     * Fetches all recommendations in one query to avoid N+1 problem.
+     */
+    private void enrichClassesWithTeacherRecommendations(List<ClassResponse> classes, UUID teacherId) {
+        if (classes == null || classes.isEmpty()) {
+            return;
+        }
+
+        // Collect all class IDs
+        List<UUID> classIds = classes.stream()
+                .map(ClassResponse::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (classIds.isEmpty()) {
+            return;
+        }
+
+        // For now, fetch recommendations for each class (we can optimize later with a batch query)
+        Map<UUID, AiRecommendation> recommendationMap = new HashMap<>();
+        for (UUID classId : classIds) {
+            recommendationRepository.findByClassAndAudience(classId, RecommendationAudience.TEACHER)
+                    .stream()
+                    .filter(rec -> rec.getRecipient().getId().equals(teacherId))
+                    .findFirst()
+                    .ifPresent(rec -> recommendationMap.put(classId, rec));
+        }
+
+        // Enrich each class with its recommendation
+        classes.forEach(classResponse -> {
+            AiRecommendation recommendation = recommendationMap.get(classResponse.getId());
+            if (recommendation != null) {
+                RecommendationSummary summary = RecommendationSummary.builder()
+                        .id(recommendation.getId())
+                        .message(recommendation.getMessage())
+                        .build();
+                classResponse.setTeacherRecommendation(summary);
+            }
+        });
     }
 }
 

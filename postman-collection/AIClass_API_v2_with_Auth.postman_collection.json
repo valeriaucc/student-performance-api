@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "95d1e985-d694-4f8f-874e-8d710d0cdaf0",
-    "name": "AIClass API v2.0 (Phase 3 - With Versioning & Monitoring)",
-    "description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication, API Versioning, and Monitoring.\n\n## \ud83c\udf89 What's New in Phase 3\n\n### API Versioning\n- All endpoints now use `/api/v1/*` path prefix\n- Semantic versioning support for backward compatibility\n- Deprecation headers for future migrations\n\n### Monitoring & Observability\n- Spring Boot Actuator endpoints for health checks\n- Prometheus metrics integration\n- Custom business metrics (user creation, enrollment counts, etc.)\n- Distributed tracing support\n\n### Performance Improvements\n- MapStruct for efficient object mapping\n- Optimized database queries with proper indexes\n- Connection pooling and caching strategies\n\n### Soft Delete Support\n- Entities are soft-deleted (marked with deletedAt timestamp)\n- Automatically filtered from all queries\n- No breaking changes to API responses\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key\n\n## API Features\n\n### Role-Based Access Control\n- **TEACHER**: Full access to create/modify classes, grades, and view all data\n- **STUDENT**: View own enrollments, grades, and recommendations\n\n### Pagination\nMost list endpoints support pagination with `page` and `size` query parameters:\n- `page`: Page number (0-indexed)\n- `size`: Items per page (default: 20)\n\n### Soft Deletes\nDeleted entities are not permanently removed but marked as deleted. They won't appear in API responses.\n\n### Monitoring\nUse the \"\ud83d\udcca Monitoring & Health\" folder to check:\n- Application health status\n- Database connectivity\n- Prometheus metrics\n- Custom business metrics\n",
+    "name": "AIClass API v2.0 (Phase 3 - With Versioning, Monitoring & AI Recommendations)",
+    "description": "Complete collection of endpoints for AIClass Student Performance Management System v2.0 with JWT Authentication, API Versioning, and Monitoring.\n\n## \ud83c\udf89 What's New in Phase 3\n\n### API Versioning\n- All endpoints now use `/api/v1/*` path prefix\n- Semantic versioning support for backward compatibility\n- Deprecation headers for future migrations\n\n### Monitoring & Observability\n- Spring Boot Actuator endpoints for health checks\n- Prometheus metrics integration\n- Custom business metrics (user creation, enrollment counts, etc.)\n- Distributed tracing support\n\n### Performance Improvements\n- MapStruct for efficient object mapping\n- Optimized database queries with proper indexes\n- Connection pooling and caching strategies\n\n### Soft Delete Support\n- Entities are soft-deleted (marked with deletedAt timestamp)\n- Automatically filtered from all queries\n- No breaking changes to API responses\n\n### AI-Powered Recommendations 🚀\n- **Grade-based recommendations**: Generate personalized AI recommendations for specific assessments\n- **Class performance recommendations**: Get AI insights for overall class performance (teacher-focused)\n- **Student performance recommendations**: Get AI insights for individual student performance in a class (teacher-focused)\n- Recommendations are idempotent - regenerating returns existing recommendation unless `forceRegenerate=true`\n- Powered by OpenAI GPT models for intelligent, context-aware suggestions\n\n## Authentication Setup\n\n### Step 1: Get JWT Token from Supabase\n\nYou need to authenticate with Supabase to get a JWT token. You have two options:\n\n#### Option A: Using Supabase Dashboard (SQL Editor)\n```sql\n-- Create a test teacher user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'teacher@university.edu',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Teacher\",\n    \"role\": \"TEACHER\"\n  }'::jsonb\n);\n\n-- Create a test student user\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)\nVALUES (\n  gen_random_uuid(),\n  'student@test.com',\n  crypt('password123', gen_salt('bf')),\n  now(),\n  '{\n    \"full_name\": \"Test Student\",\n    \"role\": \"STUDENT\"\n  }'::jsonb\n);\n```\n\n#### Option B: Using Supabase Auth API (Recommended)\n\n**Signup Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/signup' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\",\n    \"data\": {\n      \"full_name\": \"Test Teacher\",\n      \"role\": \"TEACHER\"\n    }\n  }'\n```\n\n**Login Request:**\n```bash\ncurl -X POST 'https://YOUR_PROJECT_REF.supabase.co/auth/v1/token?grant_type=password' \\\n  -H 'apikey: YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"email\": \"teacher@university.edu\",\n    \"password\": \"password123\"\n  }'\n```\n\n### Step 2: Copy the JWT Token\n\nFrom the login response, copy the `access_token` value.\n\n### Step 3: Set Token in Postman\n\n1. Go to this collection's **Authorization** tab\n2. Select **Bearer Token** type\n3. Paste your JWT token\n4. OR set it as a collection variable: `jwt_token`\n\n### Step 4: Test Authentication\n\nTry the \"Get All Users\" request. If you get a 200 response, authentication is working!\n\n## Environment Variables\n\nMake sure to set these in your Postman environment:\n- `base_url`: http://localhost:8080\n- `jwt_token`: Your JWT token from Supabase\n- `supabase_url`: https://YOUR_PROJECT_REF.supabase.co\n- `supabase_anon_key`: Your Supabase anon key\n\n## API Features\n\n### Role-Based Access Control\n- **TEACHER**: Full access to create/modify classes, grades, and view all data\n- **STUDENT**: View own enrollments, grades, and recommendations\n\n### Pagination\nMost list endpoints support pagination with `page` and `size` query parameters:\n- `page`: Page number (0-indexed)\n- `size`: Items per page (default: 20)\n\n### Soft Deletes\nDeleted entities are not permanently removed but marked as deleted. They won't appear in API responses.\n\n### Monitoring\nUse the \"\ud83d\udcca Monitoring & Health\" folder to check:\n- Application health status\n- Database connectivity\n- Prometheus metrics\n- Custom business metrics\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -30,14 +30,8 @@
             },
             "url": {
               "raw": "{{supabase_url}}/auth/v1/signup",
-              "host": [
-                "{{supabase_url}}"
-              ],
-              "path": [
-                "auth",
-                "v1",
-                "signup"
-              ]
+              "host": ["{{supabase_url}}"],
+              "path": ["auth", "v1", "signup"]
             },
             "description": "Create a new user in Supabase Auth. The JWT token will be returned in the response."
           },
@@ -112,14 +106,8 @@
             },
             "url": {
               "raw": "{{supabase_url}}/auth/v1/token?grant_type=password",
-              "host": [
-                "{{supabase_url}}"
-              ],
-              "path": [
-                "auth",
-                "v1",
-                "token"
-              ],
+              "host": ["{{supabase_url}}"],
+              "path": ["auth", "v1", "token"],
               "query": [
                 {
                   "key": "grant_type",
@@ -191,13 +179,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/actuator/health",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "actuator",
-                "health"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
             },
             "description": "Get application health status including database and Supabase auth connectivity."
           }
@@ -209,13 +192,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/actuator/prometheus",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "actuator",
-                "prometheus"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "prometheus"]
             },
             "description": "Get Prometheus-compatible metrics for monitoring."
           }
@@ -227,13 +205,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/actuator/info",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "actuator",
-                "info"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "info"]
             },
             "description": "Get application information including version and build details."
           }
@@ -245,13 +218,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/actuator/metrics",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "actuator",
-                "metrics"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics"]
             },
             "description": "Get list of available application metrics."
           }
@@ -278,14 +246,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/users",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
             },
             "description": "Get all users in the system (teachers and students). Requires TEACHER role."
           },
@@ -308,15 +270,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{user_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
             },
             "description": "Get a specific user by UUID. Requires TEACHER role."
           },
@@ -339,16 +294,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/users/auth/{{auth_user_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "auth",
-                "{{auth_user_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "auth", "{{auth_user_id}}"]
             },
             "description": "Get user by their Supabase Auth User ID. Requires authentication."
           },
@@ -371,16 +318,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/users/email/teacher@university.edu",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "email",
-                "teacher@university.edu"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "email", "teacher@university.edu"]
             },
             "description": "Get user by email. Requires TEACHER role."
           },
@@ -412,14 +351,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/users",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
             },
             "description": "Create user profile. Requires authentication."
           },
@@ -451,15 +384,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{user_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
             },
             "description": "Update user profile. Users can update their own profile. Requires authentication."
           },
@@ -482,15 +408,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/users/{{user_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{user_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
             },
             "description": "Delete user. Users can delete their own profile. Requires authentication."
           },
@@ -518,14 +437,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/subjects",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects"]
             },
             "description": "Get all subjects. Requires authentication."
           },
@@ -548,15 +461,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects",
-                "{{subject_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects", "{{subject_id}}"]
             },
             "description": "Get a subject by ID. Requires authentication."
           },
@@ -579,16 +485,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/subjects/code/CS101",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects",
-                "code",
-                "CS101"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects", "code", "CS101"]
             },
             "description": "Get a subject by its code. Requires authentication."
           },
@@ -620,14 +518,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/subjects",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects"]
             },
             "description": "Create a new subject. Requires TEACHER role."
           },
@@ -659,15 +551,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects",
-                "{{subject_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects", "{{subject_id}}"]
             },
             "description": "Update a subject. Requires TEACHER role."
           },
@@ -690,15 +575,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/subjects/{{subject_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "subjects",
-                "{{subject_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "subjects", "{{subject_id}}"]
             },
             "description": "Delete a subject. Requires TEACHER role."
           },
@@ -726,14 +604,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/classes?page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "classes"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "classes"],
               "query": [
                 {
                   "key": "teacherId",
@@ -792,15 +664,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "classes",
-                "{{class_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "classes", "{{class_id}}"]
             },
             "description": "Get a class by ID. Requires authentication."
           },
@@ -832,14 +697,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/classes",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "classes"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "classes"]
             },
             "description": "Create a new class. Requires TEACHER role."
           },
@@ -871,15 +730,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "classes",
-                "{{class_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "classes", "{{class_id}}"]
             },
             "description": "Update a class. Requires TEACHER role."
           },
@@ -902,15 +754,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/classes/{{class_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "classes",
-                "{{class_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "classes", "{{class_id}}"]
             },
             "description": "Delete a class. Requires TEACHER role."
           },
@@ -924,24 +769,22 @@
         {
           "name": "Get Enrollments by Class",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments?classId={{class_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments"],
               "query": [
                 {
                   "key": "classId",
@@ -966,24 +809,22 @@
         {
           "name": "Get Enrollments by Student",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments?studentId={{student_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments"],
               "query": [
                 {
                   "key": "studentId",
@@ -1008,24 +849,22 @@
         {
           "name": "Get Enrollments by Status",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments?status=ACTIVE&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments"],
               "query": [
                 {
                   "key": "status",
@@ -1064,15 +903,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments",
-                "{{enrollment_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments", "{{enrollment_id}}"]
             },
             "description": "Get an enrollment by ID. Requires authentication."
           },
@@ -1104,14 +936,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments"]
             },
             "description": "Enroll a student in a class. Requires TEACHER role."
           },
@@ -1143,15 +969,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments",
-                "{{enrollment_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments", "{{enrollment_id}}"]
             },
             "description": "Update enrollment status. Requires TEACHER role."
           },
@@ -1174,15 +993,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/enrollments/{{enrollment_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "enrollments",
-                "{{enrollment_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments", "{{enrollment_id}}"]
             },
             "description": "Delete an enrollment. Requires TEACHER role."
           },
@@ -1196,24 +1008,22 @@
         {
           "name": "Get Grades by Class",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/grades?classId={{class_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "grades"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades"],
               "query": [
                 {
                   "key": "classId",
@@ -1238,24 +1048,22 @@
         {
           "name": "Get Grades by Student",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/grades?studentId={{student_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "grades"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades"],
               "query": [
                 {
                   "key": "studentId",
@@ -1294,15 +1102,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "grades",
-                "{{grade_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades", "{{grade_id}}"]
             },
             "description": "Get a grade by ID. Requires authentication."
           },
@@ -1330,20 +1131,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\"\n}"
+              "raw": "{\n  \"classId\": \"{{class_id}}\",\n  \"studentId\": \"{{user_id}}\",\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam\",\n  \"score\": 85.5,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-10T14:30:00Z\",\n  \"metadata\": {\n    \"assessmentContent\": \"Chapter 1-5: Data Structures and Algorithms\",\n    \"feedback\": \"Excellent work on binary trees. Consider reviewing hash table implementations.\",\n    \"notes\": \"Student showed strong understanding of core concepts\",\n    \"rubric_score\": 4\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/grades",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "grades"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades"]
             },
-            "description": "Create a new grade. Requires TEACHER role."
+            "description": "Create a new grade. Requires TEACHER role.\n\n**Assessment Content (define once per assessment):**\n- When creating the **FIRST grade** for an assessment (same classId, assessmentKind, and assessmentName), include assessment content in metadata using keys: `assessmentContent`, `content`, `description`, or `assessmentDescription`\n- For **subsequent grades** of the same assessment, assessment content is automatically copied from the first grade - you don't need to provide it again\n\n**Teacher Feedback (specific to each student):**\n- Provide personalized feedback for each student using keys: `feedback`, `teacherFeedback`, `comments`, `notes`, or `teacherComments`\n- Feedback should be provided for every grade and is specific to the individual student's performance\n\n**Additional Data:**\n- You can store any other JSON data in metadata (e.g., `rubric_score`, `difficulty`, etc.)\n\n**Note:** The metadata field is used by AI recommendation generation to provide context-aware suggestions based on assessment content and feedback."
           },
           "response": []
         },
@@ -1369,21 +1164,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam (Revised)\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-11T10:00:00Z\"\n}"
+              "raw": "{\n  \"assessmentKind\": \"EXAM\",\n  \"assessmentName\": \"Midterm Exam (Revised)\",\n  \"score\": 90.0,\n  \"maxScore\": 100,\n  \"gradedAt\": \"2025-10-11T10:00:00Z\",\n  \"metadata\": {\n    \"assessmentContent\": \"Chapter 1-5: Data Structures and Algorithms\",\n    \"feedback\": \"Great improvement! Continue practicing dynamic programming problems.\",\n    \"teacherFeedback\": \"Student has shown significant progress since the first attempt\",\n    \"notes\": \"Updated score reflects additional credit for bonus question\"\n  }\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "grades",
-                "{{grade_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades", "{{grade_id}}"]
             },
-            "description": "Update a grade. Requires TEACHER role."
+            "description": "Update a grade. Requires TEACHER role.\n\n**Metadata Field:** Use the optional `metadata` field to store assessment content and teacher feedback:\n- **Assessment Content**: Use keys `assessmentContent`, `content`, `description`, or `assessmentDescription` to describe what the assessment covers\n- **Teacher Feedback**: Use keys `feedback`, `teacherFeedback`, `comments`, `notes`, or `teacherComments` to provide feedback to students\n- **Additional Data**: You can store any other JSON data in metadata (e.g., `rubric_score`, `difficulty`, etc.)\n\n**Note:** The metadata field is used by AI recommendation generation to provide context-aware suggestions based on assessment content and feedback."
           },
           "response": []
         },
@@ -1404,17 +1192,45 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/grades/{{grade_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "grades", "{{grade_id}}"]
+            },
+            "description": "Delete a grade. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate AI Recommendation for Grade",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/grades/{{grade_id}}/generate-recommendation",
+              "host": ["{{base_url}}"],
               "path": [
                 "api",
                 "v1",
                 "grades",
-                "{{grade_id}}"
+                "{{grade_id}}",
+                "generate-recommendation"
               ]
             },
-            "description": "Delete a grade. Requires TEACHER role."
+            "description": "Generates an AI-powered recommendation for a specific assessment/grade. The recommendation is based on the assessment content, subject, teacher feedback, and score. If a recommendation already exists for this grade, it will be returned instead of generating a new one (idempotent). Teachers can generate recommendations for grades in their classes. Students can generate recommendations for their own grades. Requires authentication."
           },
           "response": []
         }
@@ -1426,24 +1242,22 @@
         {
           "name": "Get Recommendations by Recipient",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations?recipientId={{user_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "recommendations"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations"],
               "query": [
                 {
                   "key": "recipientId",
@@ -1468,24 +1282,22 @@
         {
           "name": "Get Recommendations by Class",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations?classId={{class_id}}&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "recommendations"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations"],
               "query": [
                 {
                   "key": "classId",
@@ -1510,24 +1322,22 @@
         {
           "name": "Get Recommendations by Audience",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations?audience=INDIVIDUAL&page=0&size=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "recommendations"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations"],
               "query": [
                 {
                   "key": "audience",
@@ -1566,15 +1376,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations/{{recommendation_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "recommendations",
-                "{{recommendation_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations", "{{recommendation_id}}"]
             },
             "description": "Get a recommendation by ID. Requires authentication."
           },
@@ -1606,16 +1409,98 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations"]
+            },
+            "description": "Create a new AI recommendation. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Teacher Recommendation for Class",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/recommendations/classes/{{class_id}}/generate-teacher-recommendation?forceRegenerate=false",
+              "host": ["{{base_url}}"],
               "path": [
                 "api",
                 "v1",
-                "recommendations"
+                "recommendations",
+                "classes",
+                "{{class_id}}",
+                "generate-teacher-recommendation"
+              ],
+              "query": [
+                {
+                  "key": "forceRegenerate",
+                  "value": "false",
+                  "description": "Force regeneration - if true, regenerates recommendation even if one exists (default: false)"
+                }
               ]
             },
-            "description": "Create a new AI recommendation. Requires TEACHER role."
+            "description": "Generates an AI-powered recommendation for the teacher based on overall class performance. Analyzes all grades in the class to provide teaching strategies, intervention suggestions, and areas to focus on for the entire class. If a recommendation already exists for this class, it will be returned instead of generating a new one (idempotent). Set forceRegenerate=true to regenerate the recommendation even if one exists (useful after updating grades). Only teachers who own the class can generate recommendations. Requires TEACHER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Teacher Recommendation for Student",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/recommendations/classes/{{class_id}}/students/{{student_id}}/generate-teacher-recommendation?forceRegenerate=false",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "v1",
+                "recommendations",
+                "classes",
+                "{{class_id}}",
+                "students",
+                "{{student_id}}",
+                "generate-teacher-recommendation"
+              ],
+              "query": [
+                {
+                  "key": "forceRegenerate",
+                  "value": "false",
+                  "description": "Force regeneration - if true, regenerates recommendation even if one exists (default: false)"
+                }
+              ]
+            },
+            "description": "Generates an AI-powered recommendation for the teacher based on a specific student's performance across all assessments in the class. Analyzes all grades for the student to provide personalized teaching strategies, intervention suggestions, and support recommendations. If a recommendation already exists for this student in this class, it will be returned instead of generating a new one (idempotent). Set forceRegenerate=true to regenerate the recommendation even if one exists (useful after updating grades). Only teachers who teach the class can generate recommendations. Requires TEACHER role."
           },
           "response": []
         },
@@ -1636,15 +1521,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/recommendations/{{recommendation_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "recommendations",
-                "{{recommendation_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations", "{{recommendation_id}}"]
             },
             "description": "Delete a recommendation. Requires TEACHER role."
           },
@@ -1668,18 +1546,14 @@
       "listen": "prerequest",
       "script": {
         "type": "text/javascript",
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     },
     {
       "listen": "test",
       "script": {
         "type": "text/javascript",
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     }
   ],
@@ -1696,6 +1570,11 @@
     },
     {
       "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_id",
       "value": "",
       "type": "string"
     },

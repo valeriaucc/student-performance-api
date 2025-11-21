@@ -20,8 +20,9 @@ public interface RecommendationMapper {
      */
     @Mapping(source = "classEntity.id", target = "classId")
     @Mapping(target = "className", expression = "java(buildClassName(recommendation))")
-    @Mapping(source = "recipient.id", target = "recipientId")
-    @Mapping(source = "recipient.fullName", target = "recipientName")
+    @Mapping(source = "grade.id", target = "gradeId", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @Mapping(source = "recipient.id", target = "recipientId", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @Mapping(target = "recipientName", expression = "java(getRecipientName(recommendation))")
     RecommendationResponse toResponse(AiRecommendation recommendation);
 
     /**
@@ -31,11 +32,43 @@ public interface RecommendationMapper {
      * @return formatted class name string
      */
     default String buildClassName(AiRecommendation recommendation) {
-        if (recommendation.getClassEntity() != null && recommendation.getClassEntity().getSubject() != null) {
-            return recommendation.getClassEntity().getSubject().getName() + " - " + 
-                   recommendation.getClassEntity().getGroupCode();
+        if (recommendation == null) {
+            return null;
         }
-        return null;
+        if (recommendation.getClassEntity() == null) {
+            return null;
+        }
+        if (recommendation.getClassEntity().getSubject() == null) {
+            // If subject is null, try to use just the group code
+            return recommendation.getClassEntity().getGroupCode() != null 
+                ? recommendation.getClassEntity().getGroupCode() 
+                : null;
+        }
+        String subjectName = recommendation.getClassEntity().getSubject().getName();
+        String groupCode = recommendation.getClassEntity().getGroupCode();
+        if (subjectName == null && groupCode == null) {
+            return null;
+        }
+        if (subjectName == null) {
+            return groupCode;
+        }
+        if (groupCode == null) {
+            return subjectName;
+        }
+        return subjectName + " - " + groupCode;
+    }
+
+    /**
+     * Safely extracts recipient name from recommendation.
+     *
+     * @param recommendation the AiRecommendation entity
+     * @return recipient name or null
+     */
+    default String getRecipientName(AiRecommendation recommendation) {
+        if (recommendation == null || recommendation.getRecipient() == null) {
+            return null;
+        }
+        return recommendation.getRecipient().getFullName();
     }
 }
 

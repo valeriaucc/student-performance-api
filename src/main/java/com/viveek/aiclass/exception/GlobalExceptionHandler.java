@@ -106,6 +106,42 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(OpenAIServiceException.class)
+    public ResponseEntity<ErrorResponse> handleOpenAIServiceException(
+            OpenAIServiceException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .error(HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(ZonedDateTime.now())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ErrorResponse> handleNullPointerException(
+            NullPointerException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message("A required field is missing. Please check the data integrity.")
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(ZonedDateTime.now())
+                .build();
+
+        // Log the full stack trace for debugging
+        System.err.println("NullPointerException at " + request.getRequestURI() + ": " + ex.getMessage());
+        ex.printStackTrace();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex,

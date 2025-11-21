@@ -1,7 +1,9 @@
 package com.viveek.aiclass.mapper;
 
+import com.viveek.aiclass.domain.model.AiRecommendation;
 import com.viveek.aiclass.domain.model.Grade;
 import com.viveek.aiclass.dto.response.GradeResponse;
+import com.viveek.aiclass.dto.response.RecommendationSummary;
 import org.mapstruct.*;
 
 import java.math.BigDecimal;
@@ -26,7 +28,24 @@ public interface GradeMapper {
     @Mapping(source = "student.id", target = "studentId")
     @Mapping(source = "student.fullName", target = "studentName")
     @Mapping(target = "percentage", expression = "java(calculatePercentage(grade))")
+    @Mapping(target = "recommendation", ignore = true)
     GradeResponse toResponse(Grade grade);
+    
+    /**
+     * Maps AiRecommendation to RecommendationSummary.
+     *
+     * @param recommendation the AiRecommendation entity
+     * @return RecommendationSummary DTO
+     */
+    default RecommendationSummary toRecommendationSummary(AiRecommendation recommendation) {
+        if (recommendation == null) {
+            return null;
+        }
+        return RecommendationSummary.builder()
+                .id(recommendation.getId())
+                .message(recommendation.getMessage())
+                .build();
+    }
 
     /**
      * Calculates percentage score from grade's score and maxScore.

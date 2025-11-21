@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -50,5 +51,16 @@ public class CreateGradeRequest {
 
     @Schema(description = "When the grade was assigned", example = "2025-10-11T10:30:00-05:00")
     private ZonedDateTime gradedAt;
+
+    @Schema(
+        description = "Additional metadata (JSON object). " +
+                      "**Assessment Content (define once per assessment):** Use keys 'assessmentContent', 'content', 'description', or 'assessmentDescription' to describe what the assessment covers. " +
+                      "This should be provided when creating the FIRST grade for an assessment. For subsequent grades of the same assessment, assessment content is automatically copied from the first grade. " +
+                      "**Teacher Feedback (specific to each student):** Use keys 'feedback', 'teacherFeedback', 'comments', 'notes', or 'teacherComments' to provide personalized feedback for this student. " +
+                      "Feedback should be provided for each grade and is specific to the individual student's performance. " +
+                      "This metadata is used by AI recommendation generation to provide context-aware suggestions.",
+        example = "{\"assessmentContent\": \"Chapter 1-5: Data Structures\", \"feedback\": \"Excellent work on binary trees\", \"notes\": \"Strong understanding\", \"rubric_score\": 4}"
+    )
+    private Map<String, Object> metadata;
 }
 

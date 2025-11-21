@@ -1,11 +1,13 @@
 package com.viveek.aiclass.service.impl;
 
 import com.viveek.aiclass.constants.ValidationMessages;
+import com.viveek.aiclass.domain.model.AiRecommendation;
 import com.viveek.aiclass.domain.model.Class;
 import com.viveek.aiclass.domain.model.Enrollment;
 import com.viveek.aiclass.domain.model.Grade;
 import com.viveek.aiclass.domain.model.User;
 import com.viveek.aiclass.domain.model.enums.EnrollmentStatus;
+import com.viveek.aiclass.domain.repository.AiRecommendationRepository;
 import com.viveek.aiclass.domain.repository.ClassRepository;
 import com.viveek.aiclass.domain.repository.EnrollmentRepository;
 import com.viveek.aiclass.domain.repository.GradeRepository;
@@ -13,12 +15,14 @@ import com.viveek.aiclass.domain.repository.UserRepository;
 import com.viveek.aiclass.dto.request.CreateGradeRequest;
 import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.GradeResponse;
+import com.viveek.aiclass.dto.response.RecommendationSummary;
 import com.viveek.aiclass.exception.BusinessException;
 import com.viveek.aiclass.exception.ResourceNotFoundException;
 import com.viveek.aiclass.mapper.GradeMapper;
 import com.viveek.aiclass.security.AuthenticatedUser;
 import com.viveek.aiclass.security.SecurityContextHelper;
 import com.viveek.aiclass.service.GradeService;
+import com.viveek.aiclass.util.MetadataParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,8 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +48,7 @@ public class GradeServiceImpl implements GradeService {
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final AiRecommendationRepository recommendationRepository;
     private final GradeMapper gradeMapper;
 
     @Override
@@ -87,6 +91,38 @@ public class GradeServiceImpl implements GradeService {
             throw new BusinessException(ValidationMessages.ENROLLMENT_NOT_ACTIVE);
         }
 
+        // 🔄 ASSESSMENT CONTENT SHARING: Check if this is the first grade for this assessment
+        // If not, merge assessment content from existing grades with feedback from this grade
+        Map<String, Object> finalMetadata = request.getMetadata() != null 
+                ? new HashMap<>(request.getMetadata()) 
+                : new HashMap<>();
+        
+        List<Grade> existingGradesForAssessment = gradeRepository.findByClassAndAssessment(
+                request.getClassId(), 
+                request.getAssessmentKind(), 
+                request.getAssessmentName()
+        );
+        
+        if (!existingGradesForAssessment.isEmpty()) {
+            // This is NOT the first grade for this assessment
+            // Extract assessment content from the first grade and merge with new metadata
+            Grade firstGrade = existingGradesForAssessment.get(0);
+            Map<String, Object> existingMetadata = firstGrade.getMetadata() != null 
+                    ? firstGrade.getMetadata() 
+                    : new HashMap<>();
+            
+            log.debug("Assessment '{}' already exists. Merging assessment content from first grade with new feedback.", 
+                     request.getAssessmentName());
+            
+            // Merge: assessment content from existing, feedback from new
+            finalMetadata = MetadataParser.mergeMetadataForAssessment(existingMetadata, finalMetadata);
+        } else {
+            // This IS the first grade for this assessment
+            // Assessment content should be provided in metadata
+            log.debug("This is the first grade for assessment '{}'. Assessment content should be in metadata.", 
+                     request.getAssessmentName());
+        }
+
         Grade grade = Grade.builder()
                 .classEntity(classEntity)
                 .student(student)
@@ -95,6 +131,7 @@ public class GradeServiceImpl implements GradeService {
                 .score(request.getScore())
                 .maxScore(request.getMaxScore())
                 .gradedAt(request.getGradedAt() != null ? request.getGradedAt() : ZonedDateTime.now())
+                .metadata(finalMetadata)
                 .build();
 
         Grade savedGrade = gradeRepository.save(grade);
@@ -139,6 +176,9 @@ public class GradeServiceImpl implements GradeService {
         if (request.getGradedAt() != null) {
             grade.setGradedAt(request.getGradedAt());
         }
+        if (request.getMetadata() != null) {
+            grade.setMetadata(request.getMetadata());
+        }
 
         Grade updatedGrade = gradeRepository.save(grade);
         log.debug("Grade updated successfully: id={}", updatedGrade.getId());
@@ -170,7 +210,9 @@ public class GradeServiceImpl implements GradeService {
             }
         }
         
-        return gradeMapper.toResponse(grade);
+        GradeResponse response = gradeMapper.toResponse(grade);
+        enrichWithRecommendation(response, grade.getId());
+        return response;
     }
 
     @Override
@@ -195,8 +237,13 @@ public class GradeServiceImpl implements GradeService {
             throw new AccessDeniedException("Students can only view their own grades");
         }
         
-        return gradeRepository.findByClassEntityId(classId, pageable)
+        Page<GradeResponse> gradePage = gradeRepository.findByClassEntityId(classId, pageable)
                 .map(gradeMapper::toResponse);
+        
+        // Enrich with recommendations in batch
+        enrichGradesWithRecommendations(gradePage.getContent());
+        
+        return gradePage;
     }
 
     @Override
@@ -216,15 +263,83 @@ public class GradeServiceImpl implements GradeService {
                 throw new AccessDeniedException("You can only view your own grades");
             }
         } else if (currentUser.isTeacher()) {
-            return gradeRepository.findByStudentIdAndTeacherId(
+            Page<GradeResponse> gradePage = gradeRepository.findByStudentIdAndTeacherId(
                     studentId,
                     currentUser.getUserId(),
                     pageable
             ).map(gradeMapper::toResponse);
+            
+            // Enrich with recommendations in batch
+            enrichGradesWithRecommendations(gradePage.getContent());
+            
+            return gradePage;
         }
         
-        return gradeRepository.findByStudentId(studentId, pageable)
+        Page<GradeResponse> gradePage = gradeRepository.findByStudentId(studentId, pageable)
                 .map(gradeMapper::toResponse);
+        
+        // Enrich with recommendations in batch
+        enrichGradesWithRecommendations(gradePage.getContent());
+        
+        return gradePage;
+    }
+
+    /**
+     * Enriches a single grade response with its recommendation (if exists).
+     */
+    private void enrichWithRecommendation(GradeResponse gradeResponse, UUID gradeId) {
+        recommendationRepository.findByGradeId(gradeId)
+                .ifPresent(recommendation -> {
+                    RecommendationSummary summary = RecommendationSummary.builder()
+                            .id(recommendation.getId())
+                            .message(recommendation.getMessage())
+                            .build();
+                    gradeResponse.setRecommendation(summary);
+                });
+    }
+
+    /**
+     * Enriches multiple grade responses with their recommendations in batch (efficient).
+     * Fetches all recommendations in one query to avoid N+1 problem.
+     */
+    private void enrichGradesWithRecommendations(List<GradeResponse> grades) {
+        if (grades == null || grades.isEmpty()) {
+            return;
+        }
+
+        // Collect all grade IDs
+        List<UUID> gradeIds = grades.stream()
+                .map(GradeResponse::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (gradeIds.isEmpty()) {
+            return;
+        }
+
+        // Fetch all recommendations in one batch query
+        List<AiRecommendation> recommendations = recommendationRepository.findByGradeIds(gradeIds);
+
+        // Create a map for O(1) lookup: gradeId -> recommendation
+        Map<UUID, AiRecommendation> recommendationMap = recommendations.stream()
+                .filter(r -> r.getGrade() != null && r.getGrade().getId() != null)
+                .collect(Collectors.toMap(
+                        r -> r.getGrade().getId(),
+                        r -> r,
+                        (existing, replacement) -> existing // If multiple recommendations exist, keep first
+                ));
+
+        // Enrich each grade with its recommendation
+        grades.forEach(grade -> {
+            AiRecommendation recommendation = recommendationMap.get(grade.getId());
+            if (recommendation != null) {
+                RecommendationSummary summary = RecommendationSummary.builder()
+                        .id(recommendation.getId())
+                        .message(recommendation.getMessage())
+                        .build();
+                grade.setRecommendation(summary);
+            }
+        });
     }
 
     @Override
