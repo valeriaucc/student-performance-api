@@ -51,6 +51,9 @@ public class ClassResponse {
     @Schema(description = "Additional metadata", example = "{\"room\": \"Building C, Room 201\", \"capacity\": 30}")
     private Map<String, Object> metadata;
     
+    @Schema(description = "AI-generated recommendation for the teacher based on class performance (if available)", example = "{\"id\": \"9c5e8d7f-4a3b-2c1d-0e9f-8a7b6c5d4e3f\", \"message\": \"Based on class performance, consider focusing on...\"}")
+    private RecommendationSummary teacherRecommendation;
+    
     @Schema(description = "Creation timestamp", example = "2025-10-11T10:00:00-05:00")
     private ZonedDateTime createdAt;
     

@@ -23,6 +23,7 @@ public interface ClassMapper {
     @Mapping(source = "subject.code", target = "subjectCode")
     @Mapping(source = "teacher.id", target = "teacherId")
     @Mapping(source = "teacher.fullName", target = "teacherName")
+    @Mapping(target = "teacherRecommendation", ignore = true)
     ClassResponse toResponse(Class classEntity);
 }
 

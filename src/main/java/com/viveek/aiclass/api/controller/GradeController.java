@@ -7,7 +7,9 @@ import com.viveek.aiclass.dto.request.UpdateGradeRequest;
 import com.viveek.aiclass.dto.response.ApiResponse;
 import com.viveek.aiclass.dto.response.GradeResponse;
 import com.viveek.aiclass.dto.response.PageResponse;
+import com.viveek.aiclass.dto.response.RecommendationResponse;
 import com.viveek.aiclass.service.GradeService;
+import com.viveek.aiclass.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,7 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,6 +37,7 @@ import java.util.UUID;
 public class GradeController {
 
     private final GradeService gradeService;
+    private final RecommendationService recommendationService;
 
     @PostMapping
     @PreAuthorize("hasRole('" + SecurityRoles.TEACHER + "')")
@@ -118,6 +120,28 @@ public class GradeController {
             @Parameter(description = "Grade ID") @PathVariable UUID id) {
         gradeService.deleteGrade(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{gradeId}/generate-recommendation")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+        summary = "Generate AI recommendation for grade",
+        description = "Generates an AI-powered recommendation for a specific assessment/grade. " +
+                      "The recommendation is based on the assessment content, subject, teacher feedback, and score. " +
+                      "If a recommendation already exists for this grade, it will be returned instead of generating a new one (idempotent). " +
+                      "Teachers can generate recommendations for grades in their classes. Students can generate recommendations for their own grades."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Recommendation generated successfully (or existing recommendation returned)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Grade not found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Access denied - insufficient permissions"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "OpenAI service unavailable")
+    })
+    public ResponseEntity<ApiResponse<RecommendationResponse>> generateRecommendation(
+            @Parameter(description = "Grade ID for which to generate recommendation", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+            @PathVariable UUID gradeId) {
+        RecommendationResponse recommendation = recommendationService.generateRecommendationForGrade(gradeId);
+        return ResponseEntity.ok(ApiResponse.success("Recommendation generated successfully", recommendation));
     }
 }
 

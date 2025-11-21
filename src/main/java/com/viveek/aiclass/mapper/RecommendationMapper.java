@@ -20,6 +20,7 @@ public interface RecommendationMapper {
      */
     @Mapping(source = "classEntity.id", target = "classId")
     @Mapping(target = "className", expression = "java(buildClassName(recommendation))")
+    @Mapping(source = "grade.id", target = "gradeId")
     @Mapping(source = "recipient.id", target = "recipientId")
     @Mapping(source = "recipient.fullName", target = "recipientName")
     RecommendationResponse toResponse(AiRecommendation recommendation);

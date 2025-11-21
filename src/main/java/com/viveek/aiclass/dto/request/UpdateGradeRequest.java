@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 /**
  * Request DTO for updating an existing grade.
@@ -36,5 +37,8 @@ public class UpdateGradeRequest {
 
     @Schema(description = "When the grade was assigned", example = "2025-10-15T14:30:00-05:00")
     private ZonedDateTime gradedAt;
+
+    @Schema(description = "Additional metadata", example = "{\"notes\": \"Excellent work\", \"rubric_score\": 4}")
+    private Map<String, Object> metadata;
 }
 
