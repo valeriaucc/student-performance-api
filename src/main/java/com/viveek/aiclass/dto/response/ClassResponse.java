@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -54,10 +55,32 @@ public class ClassResponse {
     @Schema(description = "AI-generated recommendation for the teacher based on class performance (if available)", example = "{\"id\": \"9c5e8d7f-4a3b-2c1d-0e9f-8a7b6c5d4e3f\", \"message\": \"Based on class performance, consider focusing on...\"}")
     private RecommendationSummary teacherRecommendation;
     
+    @Schema(description = "List of students enrolled in this class (with ACTIVE status)", example = "[{\"id\": \"cd347c70-c0cf-4210-b4a9-fd4ceb821b0b\", \"name\": \"John Doe\", \"email\": \"john.doe@example.com\"}]")
+    private List<StudentInfo> students;
+    
     @Schema(description = "Creation timestamp", example = "2025-10-11T10:00:00-05:00")
     private ZonedDateTime createdAt;
     
     @Schema(description = "Last update timestamp", example = "2025-10-11T14:30:00-05:00")
     private ZonedDateTime updatedAt;
+    
+    /**
+     * Inner class for student information in class response.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "Student information")
+    public static class StudentInfo {
+        @Schema(description = "Student UUID", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
+        private UUID id;
+        
+        @Schema(description = "Student name", example = "John Doe")
+        private String name;
+        
+        @Schema(description = "Student email", example = "john.doe@example.com")
+        private String email;
+    }
 }
 

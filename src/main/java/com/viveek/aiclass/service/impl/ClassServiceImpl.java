@@ -84,7 +84,7 @@ public class ClassServiceImpl implements ClassService {
     public ClassResponse updateClass(UUID id, UpdateClassRequest request) {
         log.info("Updating class: id={}", id);
         
-        Class classEntity = classRepository.findById(id)
+        Class classEntity = classRepository.findByIdWithRelations(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
 
         // ✅ AUTHORIZATION: Verify the current user is the teacher of this class
@@ -132,7 +132,7 @@ public class ClassServiceImpl implements ClassService {
     @Override
     @Transactional(readOnly = true)
     public ClassResponse getClassById(UUID id) {
-        Class classEntity = classRepository.findById(id)
+        Class classEntity = classRepository.findByIdWithRelations(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
         
         // ✅ AUTHORIZATION: Verify access based on role
@@ -224,7 +224,7 @@ public class ClassServiceImpl implements ClassService {
     public void deleteClass(UUID id) {
         log.info("Soft deleting class: id={}", id);
         
-        Class classEntity = classRepository.findById(id)
+        Class classEntity = classRepository.findByIdWithRelations(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
         
         // ✅ AUTHORIZATION: Verify the current user is the teacher of this class

@@ -24,10 +24,12 @@ public interface ClassRepository extends JpaRepository<Class, UUID> {
            "WHERE c.teacher.id = :teacherId")
     List<Class> findByTeacherId(@Param("teacherId") UUID teacherId);
 
-    @Query("SELECT c FROM Class c " +
+    @Query("SELECT DISTINCT c FROM Class c " +
            "LEFT JOIN FETCH c.subject " +
            "LEFT JOIN FETCH c.teacher " +
-           "WHERE c.teacher.id = :teacherId")
+           "LEFT JOIN FETCH c.enrollments e " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE c.teacher.id = :teacherId AND (e.status = 'ACTIVE' OR e IS NULL)")
     Page<Class> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
 
     @Query("SELECT c FROM Class c " +
@@ -93,5 +95,17 @@ public interface ClassRepository extends JpaRepository<Class, UUID> {
             @Param("classId") UUID classId,
             @Param("teacherId") UUID teacherId
     );
+
+    /**
+     * Find class by ID with teacher, subject, and enrollments loaded (for response mapping).
+     * Uses fetch join to eagerly load related entities including students.
+     */
+    @Query("SELECT DISTINCT c FROM Class c " +
+           "LEFT JOIN FETCH c.subject " +
+           "LEFT JOIN FETCH c.teacher " +
+           "LEFT JOIN FETCH c.enrollments e " +
+           "LEFT JOIN FETCH e.student " +
+           "WHERE c.id = :id")
+    java.util.Optional<Class> findByIdWithRelations(@Param("id") UUID id);
 }
 

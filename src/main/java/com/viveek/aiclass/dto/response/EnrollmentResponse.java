@@ -32,6 +32,15 @@ public class EnrollmentResponse {
     @Schema(description = "Subject code", example = "CS101")
     private String subjectCode;
     
+    @Schema(description = "Teacher UUID", example = "b2ff3b86-5c6a-4c19-826e-61696649c4e8")
+    private UUID teacherId;
+    
+    @Schema(description = "Teacher name", example = "Dr. Jane Smith")
+    private String teacherName;
+    
+    @Schema(description = "Teacher email", example = "jane.smith@example.com")
+    private String teacherEmail;
+    
     @Schema(description = "Student UUID", example = "cd347c70-c0cf-4210-b4a9-fd4ceb821b0b")
     private UUID studentId;
     
